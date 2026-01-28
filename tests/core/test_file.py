@@ -9,6 +9,9 @@ def test_open_read_seek(any_fs):
         assert f.read(3) == b"012"
         assert f.tell() == 3
 
+        f.seek(2, 1)
+        assert f.tell() == 5
+
         f.seek(5)
         assert f.read(2) == b"56"
 
@@ -24,6 +27,44 @@ def test_open_write_chunked(any_fs):
 
     assert any_fs.cat_file("chunked.txt") == b"abcdefgh"
 
+
+def test_open_write_tell_tracks_position(memory_fs):
+    with memory_fs.open("tell.txt", "wb") as f:
+        assert f.tell() == 0
+        f.write(b"abc")
+        assert f.tell() == 3
+        f.write(b"de")
+        assert f.tell() == 5
+
+    assert memory_fs.cat_file("tell.txt") == b"abcde"
+
+
+def test_fsspec_minimal_file_contract(memory_fs):
+    memory_fs.pipe_file("contract.txt", b"abc")
+
+    with memory_fs.open("contract.txt", "rb") as f:
+        assert f.fs is memory_fs
+        assert f.path == "contract.txt"
+        assert f.size == 3
+        assert f.read(1) == b"a"
+        f.seek(0)
+        assert f.tell() == 0
+
+    with memory_fs.open("contract-write.txt", "wb") as f:
+        f.write(b"x")
+        f.commit()
+    assert memory_fs.cat_file("contract-write.txt") == b"x"
+
+
+def test_open_append_tell_starts_at_end(memory_fs):
+    memory_fs.pipe_file("append-tell.txt", b"hello")
+
+    with memory_fs.open("append-tell.txt", "ab") as f:
+        assert f.tell() == 5
+        f.write(b"world")
+        assert f.tell() == 10
+
+    assert memory_fs.cat_file("append-tell.txt") == b"helloworld"
 
 def test_open_exclusive_create(any_fs):
     any_fs.pipe_file("exists.txt", b"x")

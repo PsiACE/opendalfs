@@ -62,6 +62,25 @@ def s3_fs(minio_server):
     cleanup_bucket()
 
 @pytest.fixture
+def s3fs_fs(minio_server):
+    """Create an s3fs filesystem for parity checks against MinIO."""
+    s3fs = pytest.importorskip("s3fs")
+    from .utils.s3 import create_test_bucket, cleanup_bucket, verify_bucket
+
+    create_test_bucket()
+    verify_bucket()
+
+    fs = s3fs.S3FileSystem(
+        key="minioadmin",
+        secret="minioadmin",
+        client_kwargs={"endpoint_url": "http://localhost:9000"},
+        config_kwargs={"s3": {"addressing_style": "path"}},
+    )
+
+    yield fs
+    cleanup_bucket()
+
+@pytest.fixture
 def memory_fs():
     """Create an in-memory filesystem for tests that don't require external services."""
     return OpendalFileSystem(

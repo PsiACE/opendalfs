@@ -39,20 +39,32 @@ async def test_ls_and_info_fsspec_shape(memory_fs):
 
     dir_info = await memory_fs._info("a/")
     assert set(dir_info) == {"name", "size", "type"}
-    assert dir_info["name"] == "a/"
+    assert dir_info["name"] == "a"
     assert dir_info["size"] == 0
     assert dir_info["type"] == "directory"
 
     paths = await memory_fs._ls("a", detail=False)
-    assert set(paths) == {"a/b.txt", "a/c/"}
+    assert set(paths) == {"a/b.txt", "a/c"}
 
     detailed = await memory_fs._ls("a", detail=True)
     assert all(set(item) == {"name", "size", "type"} for item in detailed)
     by_name = {item["name"]: item for item in detailed}
     assert by_name["a/b.txt"]["size"] == 5
     assert by_name["a/b.txt"]["type"] == "file"
-    assert by_name["a/c/"]["size"] == 0
-    assert by_name["a/c/"]["type"] == "directory"
+    assert by_name["a/c"]["size"] == 0
+    assert by_name["a/c"]["type"] == "directory"
+
+
+@pytest.mark.asyncio
+async def test_mkdir_without_parents_is_explicit(memory_fs):
+    await memory_fs._mkdir("no-parent/child", create_parents=False)
+    info = await memory_fs._info("no-parent/child/")
+    assert info["type"] == "directory"
+
+
+def test_clean_path_preserves_trailing_sep(memory_fs):
+    cleaned = memory_fs._clean_path("opendal+s3://bucket/a/")
+    assert not cleaned.endswith("/")
 
 
 def test_copy_and_mv_sync(memory_fs):
