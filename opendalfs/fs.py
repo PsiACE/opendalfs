@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import logging
 from glob import has_magic
 from typing import Any
 
 from fsspec.asyn import AsyncFileSystem
 from fsspec.implementations.local import trailing_sep
-import logging
 from opendal import AsyncOperator, Operator
-from .file import OpendalAsyncBufferedFile, OpendalBufferedFile
 from opendal.exceptions import NotFound, Unsupported
 
+from .file import OpendalAsyncBufferedFile, OpendalBufferedFile, OpendalWriter
+
 logger = logging.getLogger("opendalfs")
+
 
 class OpendalFileSystem(AsyncFileSystem):
     """OpenDAL implementation of fsspec AsyncFileSystem.
@@ -43,7 +45,7 @@ class OpendalFileSystem(AsyncFileSystem):
         **kwargs : dict
             Passed to backend implementation
         """
-        super().__init__(asynchronous=asynchronous, loop=loop, *args, **kwargs)
+        super().__init__(*args, asynchronous=asynchronous, loop=loop, **kwargs)
         self.scheme = scheme
         self.async_fs = AsyncOperator(scheme, *args, **kwargs)
         self.operator: Operator = self.async_fs.to_operator()
@@ -174,6 +176,13 @@ class OpendalFileSystem(AsyncFileSystem):
         await self.async_fs.write(path, value)
         self.invalidate_cache(self._parent(path.rstrip("/")))
 
+    def pipe_file(self, path: str, value: bytes, mode: str = "overwrite", **kwargs) -> None:
+        """Write bytes into file (sync implementation)."""
+        if mode == "create" and self.exists(path):
+            raise FileExistsError(path)
+        self.operator.write(path, value)
+        self.invalidate_cache(self._parent(path.rstrip("/")))
+
     async def _opendal_rename(self, source: str, target: str) -> None:
         await self.async_fs.rename(source, target)
 
@@ -190,17 +199,47 @@ class OpendalFileSystem(AsyncFileSystem):
         autocommit=True,
         cache_options=None,
         **kwargs: Any,
-    ) -> OpendalBufferedFile:
-        """Open a file for reading or writing"""
-        return OpendalBufferedFile(
-            self,
-            path,
-            mode,
-            block_size,
-            autocommit,
-            cache_options=cache_options,
-            **kwargs,
-        )
+    ) -> OpendalBufferedFile | OpendalWriter:
+        """Open reads through fsspec caching and writes through OpenDAL."""
+        path = self._strip_protocol(path)
+        if mode == "rb":
+            return OpendalBufferedFile(
+                self,
+                path,
+                mode,
+                block_size,
+                autocommit,
+                cache_options=cache_options,
+                **kwargs,
+            )
+
+        if mode == "xb":
+            if self.operator.exists(path):
+                raise FileExistsError(path)
+            mode = "wb"
+
+        if mode == "ab":
+            cap = self.operator.capability()
+            if getattr(cap, "write_can_append", False):
+                try:
+                    size = self.operator.stat(path).content_length
+                except NotFound:
+                    size = 0
+                file = self.operator.open(path, "ab")
+                return OpendalWriter(self, path, mode, file, size)
+
+            try:
+                existing = self.operator.read(path)
+            except NotFound:
+                existing = b""
+            file = self.operator.open(path, "wb")
+            if existing:
+                file.write(existing)
+            size = len(existing)
+            return OpendalWriter(self, path, mode, file, size)
+
+        file = self.operator.open(path, mode)
+        return OpendalWriter(self, path, mode, file, 0)
 
     async def open_async(self, path, mode="rb", **kwargs):
         if "b" not in mode or kwargs.get("compression"):
