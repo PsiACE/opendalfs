@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
 from opendalfs import OpendalFileSystem
@@ -37,6 +39,30 @@ def test_open_write_options(memory_fs):
         file.write(b"abcdefgh")
 
     assert memory_fs.operator.read("write-options.txt") == b"abcdefgh"
+
+
+def test_open_shared_filesystem_from_multiple_threads(any_fs):
+    expected = {
+        f"thread-workers/{index}.txt": f"payload-{index}".encode() for index in range(8)
+    }
+
+    def write_one(item: tuple[str, bytes]) -> str:
+        path, payload = item
+        with any_fs.open(path, "wb") as file:
+            file.write(payload)
+        return path
+
+    def read_one(path: str) -> tuple[str, bytes]:
+        with any_fs.open(path, "rb") as file:
+            return path, file.read()
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        written = set(pool.map(write_one, expected.items()))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        actual = dict(pool.map(read_one, expected))
+
+    assert written == set(expected)
+    assert actual == expected
 
 
 def test_rejects_non_mapping_write_options():
