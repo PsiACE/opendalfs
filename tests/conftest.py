@@ -1,7 +1,9 @@
-import pytest
-from opendalfs import OpendalFileSystem
-import boto3
 import asyncio
+
+import boto3
+import pytest
+
+from opendalfs import OpendalFileSystem
 
 
 @pytest.fixture(scope="session")
@@ -14,14 +16,12 @@ def minio_server():
     retries = 3
     while retries > 0:
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(("localhost", 9000))
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                result = sock.connect_ex(("localhost", 9000))
             if result == 0:
-                sock.close()
                 return  # MinIO is available
-        except Exception as e:
-            print(f"DEBUG: Error connecting to MinIO: {e}, retrying...")
-            pass
+        except OSError as error:
+            print(f"DEBUG: Error connecting to MinIO: {error}, retrying...")
         retries -= 1
         time.sleep(1)
 
@@ -33,7 +33,7 @@ def minio_server():
 @pytest.fixture
 def s3_fs(minio_server):
     """Create an S3 filesystem for testing sync operations."""
-    from .utils.s3 import create_test_bucket, cleanup_bucket, verify_bucket
+    from .utils.s3 import cleanup_bucket, create_test_bucket, verify_bucket
 
     fs = OpendalFileSystem(
         scheme="s3",
@@ -60,6 +60,7 @@ def s3_fs(minio_server):
 
     yield fs
     cleanup_bucket()
+
 
 @pytest.fixture
 def memory_fs():

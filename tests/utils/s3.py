@@ -1,5 +1,5 @@
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 
 def get_s3_client():
@@ -34,8 +34,8 @@ def cleanup_bucket():
         if "Contents" in objects:
             for obj in objects["Contents"]:
                 s3.delete_object(Bucket="test-bucket", Key=obj["Key"])
-    except Exception as e:
-        print(f"Warning: Cleanup failed: {e}")
+    except (BotoCoreError, ClientError) as error:
+        print(f"Warning: Cleanup failed: {error}")
 
 
 def verify_bucket():

@@ -5,7 +5,6 @@ from urllib.parse import parse_qsl, urlsplit
 
 from .fs import OpendalFileSystem
 
-
 _DEFAULT_CONTAINER_KEY_BY_SERVICE: dict[str, str] = {
     "azblob": "container",
 }
