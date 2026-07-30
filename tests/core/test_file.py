@@ -1,5 +1,7 @@
 import pytest
 
+from opendalfs import OpendalFileSystem
+
 
 def test_open_read_seek(any_fs):
     data = b"0123456789"
@@ -25,12 +27,28 @@ def test_open_write_chunked(any_fs):
     assert any_fs.cat_file("chunked.txt") == b"abcdefgh"
 
 
+def test_open_write_options(memory_fs):
+    with memory_fs.open(
+        "write-options.txt",
+        "wb",
+        block_size=4,
+        write_options={"concurrent": 2},
+    ) as file:
+        file.write(b"abcdefgh")
+
+    assert memory_fs.operator.read("write-options.txt") == b"abcdefgh"
+
+
+def test_rejects_non_mapping_write_options():
+    with pytest.raises(TypeError, match="write_options must be a mapping"):
+        OpendalFileSystem("memory", write_options=4)
+
+
 def test_open_exclusive_create(any_fs):
     any_fs.pipe_file("exists.txt", b"x")
 
-    with pytest.raises(FileExistsError):
-        with any_fs.open("exists.txt", "xb") as f:
-            f.write(b"y")
+    with pytest.raises(FileExistsError), any_fs.open("exists.txt", "xb") as f:
+        f.write(b"y")
 
 
 @pytest.mark.asyncio

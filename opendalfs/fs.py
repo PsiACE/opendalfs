@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from glob import has_magic
 from typing import Any
 
@@ -30,6 +31,7 @@ class OpendalFileSystem(AsyncFileSystem):
         *args: Any,
         asynchronous: bool = False,
         loop=None,
+        write_options: Mapping[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize OpendalFileSystem.
@@ -47,8 +49,22 @@ class OpendalFileSystem(AsyncFileSystem):
         """
         super().__init__(*args, asynchronous=asynchronous, loop=loop, **kwargs)
         self.scheme = scheme
+        if write_options is not None and not isinstance(write_options, Mapping):
+            raise TypeError("write_options must be a mapping")
+        self._write_options = dict(write_options or {})
         self.async_fs = AsyncOperator(scheme, *args, **kwargs)
         self.operator: Operator = self.async_fs.to_operator()
+
+    def _resolve_write_options(
+        self,
+        override: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if override is not None and not isinstance(override, Mapping):
+            raise TypeError("write_options must be a mapping")
+        options = self._write_options.copy()
+        if override:
+            options.update(override)
+        return options
 
     @staticmethod
     def _fsspec_type_from_mode(mode: Any) -> str:
@@ -173,14 +189,16 @@ class OpendalFileSystem(AsyncFileSystem):
         """Write bytes into file (async implementation)."""
         if mode == "create" and await self._exists(path):
             raise FileExistsError(path)
-        await self.async_fs.write(path, value)
+        write_options = self._resolve_write_options(kwargs.pop("write_options", None))
+        await self.async_fs.write(path, value, **write_options)
         self.invalidate_cache(self._parent(path.rstrip("/")))
 
     def pipe_file(self, path: str, value: bytes, mode: str = "overwrite", **kwargs) -> None:
         """Write bytes into file (sync implementation)."""
         if mode == "create" and self.exists(path):
             raise FileExistsError(path)
-        self.operator.write(path, value)
+        write_options = self._resolve_write_options(kwargs.pop("write_options", None))
+        self.operator.write(path, value, **write_options)
         self.invalidate_cache(self._parent(path.rstrip("/")))
 
     async def _opendal_rename(self, source: str, target: str) -> None:
@@ -213,6 +231,14 @@ class OpendalFileSystem(AsyncFileSystem):
                 **kwargs,
             )
 
+        write_options: dict[str, Any] = {}
+        if mode in {"wb", "ab", "xb"}:
+            write_options = self._resolve_write_options(
+                kwargs.pop("write_options", None)
+            )
+            if block_size not in (None, "default") and "chunk" not in write_options:
+                write_options["chunk"] = int(block_size)
+
         if mode == "xb":
             if self.operator.exists(path):
                 raise FileExistsError(path)
@@ -225,20 +251,20 @@ class OpendalFileSystem(AsyncFileSystem):
                     size = self.operator.stat(path).content_length
                 except NotFound:
                     size = 0
-                file = self.operator.open(path, "ab")
+                file = self.operator.open(path, "ab", **write_options)
                 return OpendalWriter(self, path, mode, file, size)
 
             try:
                 existing = self.operator.read(path)
             except NotFound:
                 existing = b""
-            file = self.operator.open(path, "wb")
+            file = self.operator.open(path, "wb", **write_options)
             if existing:
                 file.write(existing)
             size = len(existing)
             return OpendalWriter(self, path, mode, file, size)
 
-        file = self.operator.open(path, mode)
+        file = self.operator.open(path, mode, **write_options)
         return OpendalWriter(self, path, mode, file, 0)
 
     async def open_async(self, path, mode="rb", **kwargs):
