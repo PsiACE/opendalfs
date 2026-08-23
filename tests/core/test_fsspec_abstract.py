@@ -46,8 +46,9 @@ class TestMemoryFsspecContract(_OpendalFsspecContract):
 class TestS3FsspecContract(_OpendalFsspecContract):
     """Run the same reusable contract against OpenDAL S3 and MinIO."""
 
-    @pytest.fixture
-    def fs(self, s3_fs):
+    @pytest.fixture(params=[True, False], ids=["cached", "uncached"])
+    def fs(self, s3_fs, request):
+        s3_fs.dircache.use_listings_cache = request.param
         return s3_fs
 
 
