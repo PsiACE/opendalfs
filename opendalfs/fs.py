@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 from glob import has_magic
 import os
 from typing import Any
@@ -7,7 +8,7 @@ from typing import Any
 from fsspec.asyn import AsyncFileSystem, sync_wrapper
 from fsspec.callbacks import DEFAULT_CALLBACK
 from fsspec.implementations.local import trailing_sep
-from fsspec.utils import stringify_path
+from fsspec.utils import stringify_path, tokenize
 import logging
 from opendal import AsyncOperator, Operator
 from .file import (
@@ -138,22 +139,51 @@ class OpendalFileSystem(AsyncFileSystem):
             cached = self.dircache[cache_path]
             return cached if detail else [info["name"] for info in cached]
 
+        if path and not path.endswith("/"):
+            try:
+                metadata = await self.async_fs.stat(path)
+            except NotFound:
+                pass
+            else:
+                info = self._info_from_metadata(path, metadata)
+                if info["type"] != "directory":
+                    out = [info]
+                    self.dircache[cache_path] = out
+                    return out if detail else [info["name"]]
+
         lister = await self.async_fs.list(self._directory_path(path))
 
         out: list[dict[str, Any]] = []
         async for entry in lister:
-            out.append(self._info_from_metadata(entry.path, entry.metadata))
+            info = self._info_from_metadata(entry.path, entry.metadata)
+            # Some OpenDAL backends include the listed directory itself.  fsspec's
+            # ``ls`` contract only returns its children.
+            is_listed_directory = (
+                info["type"] == "directory" and info["name"].rstrip("/") == cache_path
+            )
+            if not is_listed_directory:
+                out.append(info)
 
         self.dircache[cache_path] = out
         return out if detail else [info["name"] for info in out]
 
     def _info_from_metadata(self, path: str, metadata: Any) -> dict[str, Any]:
         entry_type = self._fsspec_type_from_mode(metadata.mode)
-        return {
+        info: dict[str, Any] = {
             "name": path.rstrip("/") if entry_type == "directory" else path,
             "size": metadata.content_length,
             "type": entry_type,
         }
+        for output_name, metadata_name in (
+            ("etag", "etag"),
+            ("content_md5", "content_md5"),
+            ("version", "version"),
+            ("mtime", "last_modified"),
+        ):
+            value = getattr(metadata, metadata_name, None)
+            if value is not None:
+                info[output_name] = value
+        return info
 
     async def _info(self, path: str, **kwargs):
         """Get path info"""
@@ -203,25 +233,64 @@ class OpendalFileSystem(AsyncFileSystem):
 
     async def _mkdir(self, path: str, create_parents: bool = True, **kwargs) -> None:
         """Create directory"""
-        path = self._directory_path(self._normalize_path(path))
-        await self.async_fs.create_dir(path)
-        self.invalidate_cache(self._parent(path.rstrip("/")))
+        base = self._normalize_path(path).rstrip("/")
+        if await self._exists(base, refresh=True):
+            raise FileExistsError(base)
+
+        parent = self._parent(base)
+        if not create_parents and parent and not await self._isdir(parent):
+            raise FileNotFoundError(parent)
+
+        await self.async_fs.create_dir(self._directory_path(base))
+        self.invalidate_cache(base)
+        self.invalidate_cache(parent)
+
+    async def _makedirs(self, path: str, exist_ok: bool = False) -> None:
+        """Create a directory and any missing parents."""
+        base = self._normalize_path(path).rstrip("/")
+        if await self._exists(base, refresh=True):
+            if exist_ok and await self._isdir(base):
+                return
+            raise FileExistsError(base)
+
+        await self.async_fs.create_dir(self._directory_path(base))
+        self.invalidate_cache(base)
+        self.invalidate_cache(self._parent(base))
 
     async def _rmdir(self, path: str, recursive: bool = False) -> None:
         """Remove directory"""
-        path = self._directory_path(self._normalize_path(path))
+        base = self._normalize_path(path).rstrip("/")
+        info = await self._info(base, refresh=True)
+        if info["type"] != "directory":
+            raise NotADirectoryError(base)
+
+        path = self._directory_path(base)
         if recursive:
             await self.async_fs.remove_all(path)
         else:
+            if await self._ls(base, detail=False, refresh=True):
+                raise OSError(errno.ENOTEMPTY, "Directory not empty", base)
             await self.async_fs.delete(path)
-        base = path.rstrip("/")
-        self.invalidate_cache(path)
+        self.invalidate_cache(base)
         self.invalidate_cache(self._parent(base))
+
+    rmdir = sync_wrapper(_rmdir)
 
     async def _rm_file(self, path: str, **kwargs) -> None:
         """Remove file"""
-        path = self._normalize_path(path)
-        await self.async_fs.delete(path)
+        path = self._normalize_path(path).rstrip("/")
+        try:
+            info = await self._info(path, refresh=True)
+        except FileNotFoundError:
+            info = None
+
+        backend_path = (
+            self._directory_path(path)
+            if info is not None and info["type"] == "directory"
+            else path
+        )
+        await self.async_fs.delete(backend_path)
+        self.invalidate_cache(path)
         self.invalidate_cache(self._parent(path))
 
     async def _cp_file(self, path1: str, path2: str, **kwargs) -> None:
@@ -364,6 +433,10 @@ class OpendalFileSystem(AsyncFileSystem):
     ) -> OpendalBufferedFile:
         """Open a file for reading or writing"""
         path = self._normalize_path(path)
+        # Match Python/fsspec's eager exclusive-create contract.  Backends with
+        # conditional writes still enforce atomicity when the upload commits.
+        if mode == "xb" and self.operator.exists(path):
+            raise FileExistsError(path)
         return OpendalBufferedFile(
             self,
             path,
@@ -379,6 +452,9 @@ class OpendalFileSystem(AsyncFileSystem):
             raise ValueError
 
         path = self._normalize_path(path)
+
+        if mode == "xb" and await self.async_fs.exists(path):
+            raise FileExistsError(path)
 
         size = None
         if mode == "rb":
@@ -411,6 +487,29 @@ class OpendalFileSystem(AsyncFileSystem):
             return info.last_modified
 
     modified = sync_wrapper(_modified)
+
+    def _change_token(self, path: str) -> str:
+        """Return a token that changes whenever file content changes."""
+        path = self._normalize_path(path)
+        info = self.info(path, refresh=True)
+        identity = {
+            key: info[key]
+            for key in ("etag", "content_md5", "version", "mtime")
+            if key in info
+        }
+        if identity:
+            return tokenize(path, identity)
+        if info["type"] == "file":
+            return tokenize(self.cat_file(path))
+        return tokenize(info)
+
+    def checksum(self, path: str) -> int:
+        """Return a content-sensitive integer checksum."""
+        return int(self._change_token(path), 16)
+
+    def ukey(self, path: str) -> str:
+        """Return a content-sensitive file identity token."""
+        return self._change_token(path)
 
     def mv(
         self,
@@ -452,7 +551,12 @@ class OpendalFileSystem(AsyncFileSystem):
             return
 
         stripped = self._normalize_path(path).rstrip("/")
-        self.dircache.pop(stripped, None)
+        current = stripped
+        while True:
+            self.dircache.pop(current, None)
+            if not current:
+                break
+            current = self._parent(current)
         prefix = stripped + "/"
         for key in list(self.dircache):
             if key.startswith(prefix):
