@@ -241,21 +241,20 @@ class OpendalFileSystem(AsyncFileSystem):
         if not create_parents and parent and not await self._isdir(parent):
             raise FileNotFoundError(parent)
 
+        if not self.async_fs.capability().create_dir:
+            return
+
         await self.async_fs.create_dir(self._directory_path(base))
         self.invalidate_cache(base)
         self.invalidate_cache(parent)
 
     async def _makedirs(self, path: str, exist_ok: bool = False) -> None:
         """Create a directory and any missing parents."""
-        base = self._normalize_path(path).rstrip("/")
-        if await self._exists(base, refresh=True):
-            if exist_ok and await self._isdir(base):
-                return
-            raise FileExistsError(base)
-
-        await self.async_fs.create_dir(self._directory_path(base))
-        self.invalidate_cache(base)
-        self.invalidate_cache(self._parent(base))
+        try:
+            await self._mkdir(path, create_parents=True)
+        except FileExistsError:
+            if not exist_ok:
+                raise
 
     async def _rmdir(self, path: str, recursive: bool = False) -> None:
         """Remove directory"""
@@ -297,13 +296,18 @@ class OpendalFileSystem(AsyncFileSystem):
         """Copy file from path1 to path2."""
         path1 = self._normalize_path(path1)
         path2 = self._normalize_path(path2)
-        if await self._isdir(path1):
-            await self._makedirs(path2, exist_ok=True)
+        capability = self.async_fs.capability()
+        # fsspec expands recursive copies into both files and directories,
+        # while OpenDAL's copy operation is intentionally file-only.
+        if trailing_sep(path1) or await self._isdir(path1):
+            if capability.create_dir:
+                await self.async_fs.create_dir(self._directory_path(path2))
+                self.invalidate_cache(self._parent(path2.rstrip("/")))
             return
         try:
-            try:
+            if capability.copy:
                 await self.async_fs.copy(path1, path2)
-            except Unsupported:
+            else:
                 data = await self.async_fs.read(path1)
                 await self.async_fs.write(path2, data)
         except NotFound as err:
