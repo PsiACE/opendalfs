@@ -297,6 +297,9 @@ class OpendalFileSystem(AsyncFileSystem):
         """Copy file from path1 to path2."""
         path1 = self._normalize_path(path1)
         path2 = self._normalize_path(path2)
+        if await self._isdir(path1):
+            await self._makedirs(path2, exist_ok=True)
+            return
         try:
             try:
                 await self.async_fs.copy(path1, path2)
