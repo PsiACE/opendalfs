@@ -11,7 +11,7 @@ from fsspec.tests.abstract.put import AbstractPutTests
 from opendalfs import OpendalFileSystem
 
 
-class TestMemoryFsspecContract(
+class _OpendalFsspecContract(
     AbstractFixtures,
     AbstractCopyTests,
     AbstractGetTests,
@@ -19,15 +19,7 @@ class TestMemoryFsspecContract(
     AbstractPipeTests,
     AbstractOpenTests,
 ):
-    """Run fsspec's reusable filesystem contract against OpenDAL memory."""
-
-    @pytest.fixture
-    def fs(self):
-        return OpendalFileSystem(
-            scheme="memory",
-            asynchronous=False,
-            skip_instance_cache=True,
-        )
+    """Shared fsspec contract configuration for OpenDAL-backed filesystems."""
 
     @pytest.fixture
     def fs_join(self):
@@ -36,6 +28,27 @@ class TestMemoryFsspecContract(
     @pytest.fixture
     def fs_path(self):
         return "contract"
+
+
+class TestMemoryFsspecContract(_OpendalFsspecContract):
+    """Run fsspec's reusable filesystem contract against OpenDAL memory."""
+
+    @pytest.fixture(params=[True, False], ids=["cached", "uncached"])
+    def fs(self, request):
+        return OpendalFileSystem(
+            scheme="memory",
+            asynchronous=False,
+            skip_instance_cache=True,
+            use_listings_cache=request.param,
+        )
+
+
+class TestS3FsspecContract(_OpendalFsspecContract):
+    """Run the same reusable contract against OpenDAL S3 and MinIO."""
+
+    @pytest.fixture
+    def fs(self, s3_fs):
+        return s3_fs
 
 
 def test_memory_directory_semantics(memory_fs):
