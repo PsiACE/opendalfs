@@ -34,6 +34,13 @@ Use fsspec operations, mappings, async methods, and caching.
 
 Configure retries and concurrent writes, then validate service capabilities.
 :::
+
+:::{grid-item-card} Run solution notebooks
+:link: executable-notebooks
+:link-type: doc
+
+Work through public datasets with MinIO, marimo, and downstream libraries.
+:::
 ::::
 
 ```{toctree}
@@ -43,4 +50,5 @@ quickstart
 connecting-to-storage
 common-file-operations
 production
+executable-notebooks
 ```

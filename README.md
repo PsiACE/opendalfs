@@ -103,6 +103,21 @@ native `s3` compatibility entry point translates common `s3fs` names. See the
 [documentation](https://opendalfs.readthedocs.io/) for storage configuration,
 URL rules, supported operations, tested integrations, and the API reference.
 
+## Executable notebooks
+
+The repository includes twenty marimo solution notebooks covering data
+engineering, ML workflows, scientific arrays, geospatial data, and storage
+benchmarks. They use public datasets and the root MinIO Compose service:
+
+```console
+podman compose up -d --wait
+uv run --script \
+  examples/marimo/01_pandas_penguins_landing.py
+```
+
+See [`examples/marimo`](examples/marimo) for the catalog and reproducibility
+rules.
+
 ## Community
 
 - Read the [contributing guide](https://github.com/fsspec/opendalfs/blob/main/CONTRIBUTING.md)
