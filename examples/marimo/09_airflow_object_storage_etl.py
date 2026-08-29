@@ -61,8 +61,8 @@ def _(mo):
     Task SDK `ObjectStoragePath`; it does **not** pretend to launch a full Airflow
     scheduler.
 
-        Open-Meteo publishes its API specification under CC BY 4.0 and requires
-        attribution to Open-Meteo and the underlying CAMS ENSEMBLE providers.
+    Open-Meteo publishes its API specification under CC BY 4.0 and requires
+    attribution to Open-Meteo and the underlying CAMS ENSEMBLE providers.
     """)
     return
 

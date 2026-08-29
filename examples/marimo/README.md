@@ -67,3 +67,16 @@ raw samples instead of claiming a universal winner.
 Shared code is intentionally small. `_shared.py` owns MinIO configuration,
 bucket creation, source download manifests, checksums, and benchmark sampling.
 Storage and data-library behavior remains in the official downstream APIs.
+
+## Static tutorial pages
+
+The documentation build exports these notebooks to standard fenced Markdown
+and publishes them under the User Guide's Tutorials chapter. Generate the same
+pages for another static site with:
+
+```console
+just tutorials-export
+```
+
+The `.py` notebooks remain the source of truth. Do not edit files below
+`docs/user-guide/tutorials/generated/`.

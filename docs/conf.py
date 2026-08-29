@@ -1,6 +1,15 @@
+import sys
 from importlib.metadata import version as package_version
 from pathlib import Path
 from shutil import copyfile
+
+from sphinx.util import logging
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+from export_tutorials import export_tutorials
+
+logger = logging.getLogger(__name__)
 
 project = "opendalfs"
 author = "opendalfs contributors"
@@ -59,5 +68,11 @@ def copy_contributing_guide(app):
     copyfile(source, destination)
 
 
+def generate_tutorials(app):
+    pages = export_tutorials()
+    logger.info("exported %d marimo tutorials", len(pages))
+
+
 def setup(app):
     app.connect("builder-inited", copy_contributing_guide)
+    app.connect("builder-inited", generate_tutorials)

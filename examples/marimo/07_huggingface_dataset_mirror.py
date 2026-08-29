@@ -50,14 +50,14 @@ def _(mo):
     mo.md("""
     # Mirror a Hugging Face dataset for reproducible training
 
-        This solution mirrors the pinned Palmer Penguins CSV from the Hugging Face
+    This solution mirrors the pinned Palmer Penguins CSV from the Hugging Face
     Hub into the repository's MinIO service, then asks the official
     [`datasets.load_dataset()` remote-file workflow](https://huggingface.co/docs/datasets/loading)
     to consume the OpenDAL URL in eager and streaming modes. It does not add a
     dataset adapter.
 
-        The dataset is released under CC0. Source and license metadata are preserved
-        next to the mirrored object. Start MinIO with `podman compose up -d --wait`.
+    The dataset is released under CC0. Source and license metadata are preserved
+    next to the mirrored object. Start MinIO with `podman compose up -d --wait`.
     """)
     return
 

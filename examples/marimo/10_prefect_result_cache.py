@@ -69,8 +69,8 @@ def _(mo):
     `opendal+s3://`; the same flow runs twice and the second run must reuse the
     persisted result.
 
-        The input is UCI Iris (CC BY 4.0). This example runs Prefect's local execution
-        engine, so no Prefect Cloud account or worker is required.
+    The input is UCI Iris (CC BY 4.0). This example runs Prefect's local execution
+    engine, so no Prefect Cloud account or worker is required.
     """)
     return
 

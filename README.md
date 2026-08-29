@@ -115,7 +115,8 @@ uv run --script \
   examples/marimo/01_pandas_penguins_landing.py
 ```
 
-See [`examples/marimo`](examples/marimo) for the catalog and reproducibility
+See the [Tutorials chapter](docs/user-guide/tutorials/index.md) for the lessons,
+or [`examples/marimo`](examples/marimo) for their source and reproducibility
 rules.
 
 ## Community

@@ -22,6 +22,10 @@ docs:
 docs-examples:
     uv run --group docs-examples pytest -q docs/check_examples.py
 
+# Export executable notebooks as static-site-friendly Markdown tutorials.
+tutorials-export:
+    uv run --group notebooks python docs/export_tutorials.py
+
 # Check every marimo notebook without executing its workload.
 notebooks-check:
     uv run --group notebooks marimo check examples/marimo/[0-9]*.py

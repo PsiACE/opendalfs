@@ -93,9 +93,9 @@ def _(mo):
     for a model so this notebook tests the distributed data path rather than model
     quality.
 
-        UCI Wine is CC BY 4.0. The local read benchmark includes OpenDAL via fsspec,
-        `s3fs`, and Arrow's direct S3 client. It reports observations, not a promised
-        winner: localhost timings are sensitive to caching and process startup.
+    UCI Wine is CC BY 4.0. The local read benchmark includes OpenDAL via fsspec,
+    `s3fs`, and Arrow's direct S3 client. It reports observations, not a promised
+    winner: localhost timings are sensitive to caching and process startup.
     """)
     return
 

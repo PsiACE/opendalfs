@@ -63,10 +63,10 @@ def _(mo):
     package's supported fsspec-backed `MemoryFileSystem(fs=...)` entry point over
     OpenDAL: put, find, walk, get, and content verification.
 
-        This is deliberately marked **experimental**. It proves the low-level
-        `dvc-objects` 5.2 contract used by opendalfs integration tests; it does not
-        claim that the high-level `dvc remote add` CLI recognizes `opendal+s3://`.
-        The input is UCI Iris, licensed CC BY 4.0.
+    This is deliberately marked **experimental**. It proves the low-level
+    `dvc-objects` 5.2 contract used by opendalfs integration tests; it does not
+    claim that the high-level `dvc remote add` CLI recognizes `opendal+s3://`.
+    The input is UCI Iris, licensed CC BY 4.0.
     """)
     return
 

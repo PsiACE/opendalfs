@@ -63,9 +63,9 @@ def _(mo):
     a catalog beside the data in MinIO, load it through `opendal+s3://`, and compare
     its result with a direct fsspec read.
 
-        The example uses the MIT-licensed `us-states` dataset. Its abbreviation and
-        capital columns stand in for a compact reference-feature table that many jobs
-        can discover through one catalog entry.
+    The example uses the MIT-licensed `us-states` dataset. Its abbreviation and
+    capital columns stand in for a compact reference-feature table that many jobs
+    can discover through one catalog entry.
     """)
     return
 

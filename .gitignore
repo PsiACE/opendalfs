@@ -14,3 +14,4 @@ dist/
 coverage.xml
 docs/_build/
 docs/contributing/development.md
+docs/user-guide/tutorials/generated/

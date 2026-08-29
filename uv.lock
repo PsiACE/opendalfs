@@ -3137,6 +3137,7 @@ dev = [
     { name = "universal-pathlib" },
 ]
 docs = [
+    { name = "marimo" },
     { name = "myst-parser" },
     { name = "numpydoc" },
     { name = "pydata-sphinx-theme" },
@@ -3223,7 +3224,7 @@ dev = [
     { name = "dvc-objects", specifier = "==5.2.0" },
     { name = "intake", specifier = "==2.0.9" },
     { name = "lightning", specifier = "==2.6.5" },
-    { name = "marimo", specifier = ">=0.17.0" },
+    { name = "marimo", specifier = ">=0.24.0,<0.25" },
     { name = "myst-parser", specifier = ">=4.0.1" },
     { name = "numpydoc", specifier = ">=1.9.0" },
     { name = "pandas", specifier = "==3.0.5" },
@@ -3242,6 +3243,7 @@ dev = [
     { name = "universal-pathlib", specifier = "==0.3.10" },
 ]
 docs = [
+    { name = "marimo", specifier = ">=0.24.0,<0.25" },
     { name = "myst-parser", specifier = ">=4.0.1" },
     { name = "numpydoc", specifier = ">=1.9.0" },
     { name = "pydata-sphinx-theme", specifier = ">=0.21.0" },
@@ -3280,7 +3282,7 @@ integration-xarray = [
     { name = "zarr", specifier = "==3.3.0" },
 ]
 integration-zarr = [{ name = "zarr", specifier = "==3.3.0" }]
-notebooks = [{ name = "marimo", specifier = ">=0.17.0" }]
+notebooks = [{ name = "marimo", specifier = ">=0.24.0,<0.25" }]
 test = [
     { name = "boto3", specifier = ">=1.37.3" },
     { name = "dask", extras = ["dataframe"], specifier = "==2026.8.0" },

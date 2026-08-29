@@ -73,9 +73,9 @@ def _(mo):
     directory, then proves that a fresh model has the same parameters and
     predictions.
 
-        The training input is the UCI Wine classification dataset, licensed CC BY 4.0.
-        Object stores do not provide POSIX symlinks, so this solution deliberately does
-        not use `save_last="link"`.
+    The training input is the UCI Wine classification dataset, licensed CC BY 4.0.
+    Object stores do not provide POSIX symlinks, so this solution deliberately does
+    not use `save_last="link"`.
     """)
     return
 
