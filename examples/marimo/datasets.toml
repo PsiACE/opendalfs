@@ -1,0 +1,75 @@
+[datasets.iris]
+url = "https://archive.ics.uci.edu/static/public/53/iris.zip"
+license = "CC BY 4.0"
+source = "https://archive.ics.uci.edu/dataset/53/iris"
+sha256 = "d11fe30213d36434a0879aab7cb00ce3c812eb7ba2495874438abff7b7b762e9"
+
+[datasets.penguins]
+url = "https://raw.githubusercontent.com/allisonhorst/palmerpenguins/main/inst/extdata/penguins.csv"
+license = "CC0"
+source = "https://github.com/allisonhorst/palmerpenguins"
+
+[datasets.nyc_taxi]
+url = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet"
+license = "NYC Open Data Terms of Use"
+source = "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page"
+
+[datasets.nyc_taxi_zones]
+url = "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
+license = "NYC Open Data Terms of Use"
+source = "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page"
+
+[datasets.noaa_storm_2021]
+url = "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2021_c20260323.csv.gz"
+license = "United States public domain"
+source = "https://www.ncei.noaa.gov/stormevents/ftp.jsp"
+
+[datasets.noaa_storm_2022]
+url = "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz"
+license = "United States public domain"
+source = "https://www.ncei.noaa.gov/stormevents/ftp.jsp"
+
+[datasets.noaa_storm_2023]
+url = "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz"
+license = "United States public domain"
+source = "https://www.ncei.noaa.gov/stormevents/ftp.jsp"
+
+[datasets.gdelt_events]
+url = "https://data.gdeltproject.org/events/20240101.export.CSV.zip"
+license = "Free use with GDELT attribution"
+source = "https://www.gdeltproject.org/"
+
+[datasets.hf_penguins]
+url = "https://huggingface.co/datasets/SIH/palmer-penguins/resolve/e13dbb8b1feeec1416b0a3d949e2fa38ab74975a/penguins.csv"
+license = "CC0"
+source = "https://huggingface.co/datasets/SIH/palmer-penguins"
+
+[datasets.wine]
+url = "https://archive.ics.uci.edu/static/public/109/wine.zip"
+license = "CC BY 4.0"
+source = "https://archive.ics.uci.edu/dataset/109/wine"
+
+[datasets.us_states]
+url = "https://raw.githubusercontent.com/iamsenorespana/us-states/master/data/states.csv"
+license = "MIT"
+source = "https://github.com/iamsenorespana/us-states"
+
+[datasets.air_temperature]
+url = "https://raw.githubusercontent.com/pydata/xarray-data/master/air_temperature.nc"
+license = "United States public domain; cite NOAA PSL"
+source = "https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html"
+
+[datasets.nwm]
+url = "https://noaa-nwm-retro-v2-0-pds.s3.amazonaws.com/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
+license = "United States public domain"
+source = "https://registry.opendata.aws/nwm-archive/"
+
+[datasets.sentinel_red]
+url = "https://sentinel-cogs.s3.amazonaws.com/sentinel-s2-l2a-cogs/45/C/VQ/2022/11/S2B_45CVQ_20221102_0_L2A/B04.tif"
+license = "Copernicus Sentinel Data Terms"
+source = "https://registry.opendata.aws/sentinel-2-l2a-cogs/"
+
+[datasets.natural_earth_countries]
+url = "https://naciscdn.org/naturalearth/110m/cultural/ne_110m_admin_0_countries.zip"
+license = "Public domain"
+source = "https://www.naturalearthdata.com/about/terms-of-use/"

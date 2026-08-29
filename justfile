@@ -22,6 +22,22 @@ docs:
 docs-examples:
     uv run --group docs-examples pytest -q docs/check_examples.py
 
+# Check every marimo notebook without executing its workload.
+notebooks-check:
+    uv run --group notebooks marimo check examples/marimo/[0-9]*.py
+
+# Run one notebook as an isolated, reproducible Python script.
+notebook path:
+    uv run --script "{{path}}"
+
+# Execute every notebook against the configured object store.
+notebooks-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for notebook in examples/marimo/[0-9]*.py; do
+        uv run --script "$notebook"
+    done
+
 # Rebuild the documentation while files change and serve it locally.
 docs-serve:
     uv run --group docs sphinx-autobuild -W -n docs docs/_build/html

@@ -91,6 +91,9 @@ docs-examples = [
     { include-group = "test" },
     { include-group = "integration-xarray" },
 ]
+notebooks = [
+    "marimo>=0.17.0",
+]
 integration-prefect = [
     "prefect==3.8.4; python_version < '3.15'",
 ]
@@ -103,6 +106,7 @@ integration-torchdata = [
 dev = [
     { include-group = "bench" },
     { include-group = "docs" },
+    { include-group = "notebooks" },
     { include-group = "test" },
     "ruff>=0.16.4",
     "ty>=0.0.74",
@@ -143,6 +147,9 @@ opendalfs = ["py.typed"]
 python = "./.venv"
 python-version = "3.12"
 
+[tool.ty.src]
+exclude-scripts = true
+
 [tool.ruff]
 target-version = "py312"
 line-length = 88
@@ -178,6 +185,7 @@ max-complexity = 12
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S106"]
+"examples/marimo/*.py" = ["S101", "S311"]
 
 [tool.ruff.format]
 preview = true
