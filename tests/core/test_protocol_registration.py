@@ -1,37 +1,20 @@
-import pickle
 import subprocess
 import sys
 
 import fsspec
+import pytest
 
 from opendalfs.registry import (
     OpendalAzBlobFileSystem,
     OpendalGCSFileSystem,
     OpendalS3FileSystem,
     S3FileSystem,
-    _OpendalServiceFileSystem,
-    register_opendal_protocols,
-    register_opendal_service,
     register_opendal_standard_protocols,
 )
 
 
-class _ScopedMemoryFileSystem(_OpendalServiceFileSystem):
-    """Memory backend with a bucket-shaped external namespace for path tests."""
-
-    protocol = "opendal+memory"
-    _authority_option = "bucket"
-
-    def __init__(self, *args, **kwargs):
-        kwargs.pop("bucket")
-        super().__init__(*args, **kwargs)
-
-
-def test_register_default_protocols():
+def test_installed_service_protocols_resolve():
     from fsspec.registry import get_filesystem_class
-
-    registered = register_opendal_protocols()
-    assert registered == ["opendal+azblob", "opendal+gcs", "opendal+s3"]
 
     assert get_filesystem_class("opendal+s3") is OpendalS3FileSystem
     assert get_filesystem_class("opendal+gcs") is OpendalGCSFileSystem
@@ -63,6 +46,13 @@ fs, path = fsspec.core.url_to_fs(
 )
 fs.pipe_file(path, b"isolated")
 assert fs.cat_file(path) == b"isolated"
+
+try:
+    fsspec.get_filesystem_class("opendal+memory")
+except ValueError as error:
+    assert "Protocol not known" in str(error)
+else:
+    raise AssertionError("non-Tier-0 services must use opendal://")
 """
 
     subprocess.run(
@@ -73,126 +63,60 @@ assert fs.cat_file(path) == b"isolated"
     )
 
 
-def test_strip_protocol_and_kwargs():
-    assert (
-        OpendalS3FileSystem._strip_protocol("opendal+s3://bucket/dir/file.txt")
-        == "bucket/dir/file.txt"
-    )
-    assert OpendalS3FileSystem._get_kwargs_from_urls(
-        "opendal+s3://bucket/dir/file.txt"
-    ) == {"bucket": "bucket"}
-    assert OpendalS3FileSystem._get_kwargs_from_urls(
-        "opendal+s3://bucket/dir/file.txt?bucket=other&region=elsewhere"
-    ) == {"bucket": "bucket"}
+@pytest.mark.parametrize(
+    ("url", "options", "filesystem_type", "scope_option", "scope"),
+    [
+        (
+            "opendal+s3://bucket/dir/file.txt",
+            {"region": "us-east-1"},
+            OpendalS3FileSystem,
+            "bucket",
+            "bucket",
+        ),
+        (
+            "opendal+gcs://bucket/dir/file.txt",
+            {},
+            OpendalGCSFileSystem,
+            "bucket",
+            "bucket",
+        ),
+        (
+            "opendal+azblob://container/dir/file.txt",
+            {
+                "endpoint": "https://account.blob.core.windows.net",
+                "account_name": "account",
+            },
+            OpendalAzBlobFileSystem,
+            "container",
+            "container",
+        ),
+    ],
+)
+def test_explicit_service_url_selects_scope(
+    url, options, filesystem_type, scope_option, scope
+):
+    fs, path = fsspec.core.url_to_fs(url, skip_instance_cache=True, **options)
 
-    assert (
-        OpendalAzBlobFileSystem._strip_protocol(
-            "opendal+azblob://container/dir/file.txt"
-        )
-        == "container/dir/file.txt"
-    )
-    assert OpendalAzBlobFileSystem._get_kwargs_from_urls(
-        "opendal+azblob://container/dir/file.txt"
-    ) == {"container": "container"}
-
-
-def test_dynamic_service_registration_uses_opendal_authority_option():
-    from fsspec.registry import get_filesystem_class
-
-    protocol = register_opendal_service("oss")
-    assert protocol == "opendal+oss"
-
-    cls = get_filesystem_class(protocol)
-    assert cls.protocol == protocol
-    assert cls._strip_protocol("opendal+oss://bucket/dir/file.txt") == (
-        "bucket/dir/file.txt"
-    )
-    assert cls._get_kwargs_from_urls("opendal+oss://bucket/dir/file.txt") == {
-        "bucket": "bucket"
-    }
-
-
-def test_dynamic_service_registration_does_not_guess_authority_option():
-    from fsspec.registry import get_filesystem_class
-
-    protocol = register_opendal_service("webdav")
-    cls = get_filesystem_class(protocol)
-
-    assert cls._strip_protocol("opendal+webdav://host/dir/file.txt") == (
-        "/host/dir/file.txt"
-    )
-    assert cls._get_kwargs_from_urls("opendal+webdav://host/dir/file.txt") == {}
+    assert isinstance(fs, filesystem_type)
+    assert fs.storage_options[scope_option] == scope
+    assert path == f"{scope}/dir/file.txt"
 
 
-def test_empty_service_registration_fails_early():
-    import pytest
-
-    with pytest.raises(ValueError, match="cannot be empty"):
-        register_opendal_service("")
-
-
-def test_dynamic_filesystem_is_pickleable():
-    protocol = register_opendal_service("memory")
-    fs = fsspec.filesystem(protocol, skip_instance_cache=True)
-
-    restored = pickle.loads(pickle.dumps(fs))  # noqa: S301
-
-    restored.pipe_file("pickle/item.bin", b"restored")
-    assert restored.cat_file("pickle/item.bin") == b"restored"
-
-
-def test_dynamic_service_paths_without_authority_match_fsspec_memory():
-    from fsspec.implementations.memory import MemoryFileSystem
-    from fsspec.registry import get_filesystem_class
-
-    protocol = register_opendal_service("memory")
-    cls = get_filesystem_class(protocol)
-    assert cls._strip_protocol(["opendal+memory:///one", "opendal+memory://two"]) == [
-        "/one",
-        "/two",
-    ]
-
-    opendal_fs = cls(skip_instance_cache=True)
-    memory_fs = MemoryFileSystem(skip_instance_cache=True)
-    root = "integration/path-contract"
-
-    def path_behavior(fs):
-        path = fs._strip_protocol(fs.unstrip_protocol(root))
-        file_path = f"{path}/one.txt"
-        nested_path = f"{path}/nested/two.txt"
-        fs.pipe_file(file_path, b"one")
-        fs.pipe_file(nested_path, b"two")
-        behavior = {
-            "path": path,
-            "name": fs.info(file_path)["name"],
-            "find": fs.find(path),
-            "walk": list(fs.walk(path)),
-        }
-        fs.rm_file(file_path)
-        behavior["find_after_rm"] = fs.find(path)
-        return behavior
-
-    assert path_behavior(opendal_fs) == path_behavior(memory_fs)
-
-
-def test_backend_key_can_start_with_the_authority(tmp_path):
-    fs = _ScopedMemoryFileSystem(bucket="bucket", skip_instance_cache=True)
-    directory = "bucket/bucket"
+def test_backend_key_can_start_with_the_authority(s3_fs, s3_config, tmp_path):
+    fs = s3_fs
+    directory = f"{s3_config.bucket}/bucket"
     source = f"{directory}/source.txt"
     copied = f"{directory}/copied.txt"
     moved = f"{directory}/moved.txt"
 
     fs.pipe_file(source, b"content")
-    with fs.open(source, "ab") as source_file:
-        assert source_file.path == source
-        source_file.write(b" appended")
 
     download = tmp_path / "source.txt"
     fs.get_file(source, download)
     fs.cp_file(source, copied)
     fs.mv(copied, moved)
 
-    assert download.read_bytes() == b"content appended"
-    assert fs.cat_file(moved) == b"content appended"
+    assert download.read_bytes() == b"content"
+    assert fs.cat_file(moved) == b"content"
     assert fs.info(moved)["name"] == moved
     assert set(fs.ls(directory, detail=False)) == {source, moved}

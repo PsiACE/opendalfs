@@ -34,6 +34,12 @@ class OpendalFileSystem(AsyncFileSystem):
     async_impl = True
     protocol = "opendal"
 
+    @classmethod
+    def _strip_protocol(cls, path):
+        if isinstance(path, list):
+            return [cls._strip_protocol(item) for item in path]
+        return super()._strip_protocol(path).lstrip("/")
+
     def __init__(
         self,
         scheme: str,

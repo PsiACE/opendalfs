@@ -13,7 +13,6 @@ def test_upath_protocol_read_write_and_listing(opendal_fs, opendal_root):
     root = UPath(
         f"{opendal_root}/universal-pathlib",
         protocol=opendal_fs.protocol,
-        **opendal_fs.storage_options,
     )
 
     folder = root / "folder1"

@@ -2,8 +2,6 @@ import fsspec
 import fsspec.config
 import pytest
 
-from opendalfs import register_opendal_service
-
 
 @pytest.fixture(params=("memory", "fs", "s3"))
 def opendal_backend(request):
@@ -14,17 +12,17 @@ def opendal_backend(request):
 def opendal_protocol(opendal_backend):
     if opendal_backend == "s3":
         return "opendal+s3"
-    return register_opendal_service(opendal_backend)
+    return "opendal"
 
 
 @pytest.fixture
 def opendal_storage_options(opendal_backend, tmp_path, s3_config):
     if opendal_backend == "memory":
-        return {}
+        return {"scheme": "memory"}
     if opendal_backend == "fs":
         storage_root = tmp_path / "storage"
         storage_root.mkdir()
-        return {"root": str(storage_root)}
+        return {"scheme": "fs", "root": str(storage_root)}
     return {
         "endpoint": s3_config.endpoint,
         "region": s3_config.region,
@@ -49,7 +47,7 @@ def opendal_fs(
     monkeypatch.setitem(
         fsspec.config.conf,
         opendal_protocol,
-        opendal_storage_options,
+        fs.storage_options,
     )
     return fs
 
