@@ -4,7 +4,6 @@ import sys
 
 import fsspec
 
-from opendalfs import OpendalFileSystem
 from opendalfs.registry import (
     OpendalAzBlobFileSystem,
     OpendalGCSFileSystem,
@@ -55,13 +54,7 @@ def test_entry_points_resolve_in_an_isolated_process():
     code = """
 import fsspec
 
-from opendalfs.registry import (
-    OpendalNativeS3FileSystem,
-)
-from opendalfs import OpendalFileSystem
-
-assert fsspec.get_filesystem_class("s3") is OpendalNativeS3FileSystem
-assert fsspec.get_filesystem_class("opendal") is OpendalFileSystem
+assert fsspec.get_filesystem_class("s3").__module__ == "opendalfs.registry"
 
 fs, path = fsspec.core.url_to_fs(
     "opendal:///isolated/item.bin",
@@ -138,34 +131,14 @@ def test_empty_service_registration_fails_early():
         register_opendal_service("")
 
 
-def test_opendal_protocol_uses_explicit_service_configuration():
-    from fsspec.registry import register_implementation
-
-    register_implementation("opendal", OpendalFileSystem, clobber=True)
-    fs, path = fsspec.core.url_to_fs(
-        "opendal:///data/item.bin",
-        scheme="memory",
-        skip_instance_cache=True,
-    )
-
-    assert isinstance(fs, OpendalFileSystem)
-    assert fs.scheme == "memory"
-    assert path == "/data/item.bin"
-    assert fs.unstrip_protocol(path) == "opendal:///data/item.bin"
-
-    fs.pipe_file(path, b"generic")
-    assert fs.cat_file(path) == b"generic"
-    assert fs.info(path)["name"] == path.lstrip("/")
-
-
 def test_dynamic_filesystem_is_pickleable():
     protocol = register_opendal_service("memory")
     fs = fsspec.filesystem(protocol, skip_instance_cache=True)
 
     restored = pickle.loads(pickle.dumps(fs))  # noqa: S301
 
-    assert restored.protocol == protocol
-    assert restored.service_name == "memory"
+    restored.pipe_file("pickle/item.bin", b"restored")
+    assert restored.cat_file("pickle/item.bin") == b"restored"
 
 
 def test_dynamic_service_paths_without_authority_match_fsspec_memory():

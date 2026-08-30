@@ -25,6 +25,12 @@ Run `just --list` to list the supported development commands.
 
 ## Testing
 
+Test public behavior, not implementation structure. Prefer end-to-end acceptance
+tests for user-visible workflows and focused regression tests for failures that
+have occurred before. A refactor that preserves behavior should not require test
+changes. Avoid assertions about private helpers, internal allocation choices,
+call sequences, or errors already normalized by a dependency.
+
 ### Unit tests
 
 Run tests that do not require S3:
