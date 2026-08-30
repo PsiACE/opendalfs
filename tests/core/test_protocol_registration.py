@@ -1,8 +1,17 @@
+import pickle
+import subprocess
+import sys
+
+import fsspec
+
+from opendalfs import OpendalFileSystem
 from opendalfs.registry import (
     OpendalAzBlobFileSystem,
     OpendalGCSFileSystem,
+    OpendalNativeS3FileSystem,
     OpendalS3FileSystem,
     _OpendalServiceFileSystem,
+    register_opendal_native_protocols,
     register_opendal_protocols,
     register_opendal_service,
 )
@@ -28,6 +37,47 @@ def test_register_default_protocols():
     assert get_filesystem_class("opendal+s3") is OpendalS3FileSystem
     assert get_filesystem_class("opendal+gcs") is OpendalGCSFileSystem
     assert get_filesystem_class("opendal+azblob") is OpendalAzBlobFileSystem
+
+
+def test_native_s3_registration_replaces_existing_implementation(monkeypatch):
+    import importlib
+
+    from fsspec.implementations.memory import MemoryFileSystem
+
+    registry = importlib.import_module("fsspec.registry")
+    monkeypatch.setitem(registry._registry, "s3", MemoryFileSystem)
+
+    assert register_opendal_native_protocols() == ["s3"]
+    assert registry.get_filesystem_class("s3") is OpendalNativeS3FileSystem
+
+
+def test_entry_points_resolve_in_an_isolated_process():
+    code = """
+import fsspec
+
+from opendalfs.registry import (
+    OpendalNativeS3FileSystem,
+)
+from opendalfs import OpendalFileSystem
+
+assert fsspec.get_filesystem_class("s3") is OpendalNativeS3FileSystem
+assert fsspec.get_filesystem_class("opendal") is OpendalFileSystem
+
+fs, path = fsspec.core.url_to_fs(
+    "opendal:///isolated/item.bin",
+    scheme="memory",
+    skip_instance_cache=True,
+)
+fs.pipe_file(path, b"isolated")
+assert fs.cat_file(path) == b"isolated"
+"""
+
+    subprocess.run(
+        [sys.executable, "-I", "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_strip_protocol_and_kwargs():
@@ -79,6 +129,43 @@ def test_dynamic_service_registration_does_not_guess_authority_option():
         "/host/dir/file.txt"
     )
     assert cls._get_kwargs_from_urls("opendal+webdav://host/dir/file.txt") == {}
+
+
+def test_empty_service_registration_fails_early():
+    import pytest
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        register_opendal_service("")
+
+
+def test_opendal_protocol_uses_explicit_service_configuration():
+    from fsspec.registry import register_implementation
+
+    register_implementation("opendal", OpendalFileSystem, clobber=True)
+    fs, path = fsspec.core.url_to_fs(
+        "opendal:///data/item.bin",
+        scheme="memory",
+        skip_instance_cache=True,
+    )
+
+    assert isinstance(fs, OpendalFileSystem)
+    assert fs.scheme == "memory"
+    assert path == "/data/item.bin"
+    assert fs.unstrip_protocol(path) == "opendal:///data/item.bin"
+
+    fs.pipe_file(path, b"generic")
+    assert fs.cat_file(path) == b"generic"
+    assert fs.info(path)["name"] == path.lstrip("/")
+
+
+def test_dynamic_filesystem_is_pickleable():
+    protocol = register_opendal_service("memory")
+    fs = fsspec.filesystem(protocol, skip_instance_cache=True)
+
+    restored = pickle.loads(pickle.dumps(fs))  # noqa: S301
+
+    assert restored.protocol == protocol
+    assert restored.service_name == "memory"
 
 
 def test_dynamic_service_paths_without_authority_match_fsspec_memory():
