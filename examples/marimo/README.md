@@ -35,7 +35,7 @@ uvx marimo edit --sandbox examples/marimo/00_minio_protocols.py
 
 | No. | Workflow | Downstream integration |
 | --- | --- | --- |
-| 00 | MinIO protocol routing | fsspec native, explicit, and configured protocols |
+| 00 | MinIO protocol routing | fsspec standard, explicit, and configured protocols |
 | 01 | Penguins landing zone | pandas and Parquet |
 | 02 | Partitioned taxi lake | Arrow Dataset and Hive partitions |
 | 03 | Taxi analytics | DuckDB `register_filesystem` |

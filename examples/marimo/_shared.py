@@ -144,12 +144,12 @@ def opendal_filesystem(config: MinioConfig):
     )
 
 
-def native_s3_filesystem(config: MinioConfig):
+def standard_s3_filesystem(config: MinioConfig):
     import fsspec
 
-    from opendalfs import register_opendal_native_protocols
+    from opendalfs import register_opendal_standard_protocols
 
-    register_opendal_native_protocols(["s3"])
+    register_opendal_standard_protocols(["s3"])
     return fsspec.filesystem(
         "s3",
         bucket=config.bucket,

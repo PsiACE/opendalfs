@@ -24,8 +24,8 @@ def _():
         dataset_spec,
         ensure_minio,
         fetch_to_minio,
-        native_s3_filesystem,
         opendal_filesystem,
+        standard_s3_filesystem,
     )
 
     import marimo as mo
@@ -37,8 +37,8 @@ def _():
         fetch_to_minio,
         fsspec,
         mo,
-        native_s3_filesystem,
         opendal_filesystem,
+        standard_s3_filesystem,
     )
 
 
@@ -58,15 +58,15 @@ def _(mo):
 
 
 @app.cell
-def _(MinioConfig, ensure_minio, native_s3_filesystem, opendal_filesystem):
+def _(MinioConfig, ensure_minio, opendal_filesystem, standard_s3_filesystem):
     minio = MinioConfig.from_env()
     ensure_minio(minio)
-    native_fs = native_s3_filesystem(minio)
+    standard_fs = standard_s3_filesystem(minio)
     explicit_fs = opendal_filesystem(minio)
 
-    assert type(native_fs).__module__.startswith("opendalfs")
+    assert type(standard_fs).__module__.startswith("opendalfs")
     assert type(explicit_fs).__module__.startswith("opendalfs")
-    return explicit_fs, minio, native_fs
+    return explicit_fs, minio, standard_fs
 
 
 @app.cell
@@ -81,9 +81,9 @@ def _(dataset_spec, explicit_fs, fetch_to_minio):
 
 
 @app.cell
-def _(explicit_fs, fsspec, iris_download, iris_key, minio, native_fs):
+def _(explicit_fs, fsspec, iris_download, iris_key, minio, standard_fs):
     explicit_bytes = explicit_fs.cat_file(iris_key)
-    native_bytes = native_fs.cat_file(iris_key)
+    standard_bytes = standard_fs.cat_file(iris_key)
 
     configured_url = f"opendal:///{iris_key}"
     configured_fs, configured_path = fsspec.core.url_to_fs(
@@ -94,11 +94,11 @@ def _(explicit_fs, fsspec, iris_download, iris_key, minio, native_fs):
     )
     configured_bytes = configured_fs.cat_file(configured_path)
 
-    assert explicit_bytes == native_bytes == configured_bytes
+    assert explicit_bytes == standard_bytes == configured_bytes
     assert len(explicit_bytes) == iris_download.size
 
     protocol_result = {
-        "s3://": type(native_fs).__name__,
+        "s3://": type(standard_fs).__name__,
         "opendal+s3://": type(explicit_fs).__name__,
         "opendal://": type(configured_fs).__name__,
         "bytes": len(explicit_bytes),
