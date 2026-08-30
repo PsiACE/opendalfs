@@ -6,7 +6,8 @@ Python data libraries.
 
 ## The request path
 
-When pandas opens an `opendal+s3` URL, the request passes through these layers:
+When pandas opens an `s3`, `opendal`, or `opendal+s3` URL, the request passes
+through these layers:
 
 ```text
 pandas
@@ -48,6 +49,18 @@ connection reuse, but it does not merge different service configurations.
 
 OpenDAL remains responsible for service clients, credentials, backend-specific
 configuration, and the native capability of each service.
+
+## One registration model
+
+The protocol adapters share one filesystem implementation. A small service
+table records only the URL authority mapping that differs between backends.
+Dynamically created `opendal+<service>` classes use that same table and path
+logic, while the generic `opendal` protocol receives its service explicitly.
+
+Native compatibility remains a thin boundary. The `s3` adapter translates
+common `s3fs` constructor names, then delegates every filesystem operation to
+the shared OpenDAL implementation. This avoids maintaining parallel storage
+code for native, generic, and explicit protocols.
 
 ## Why integrations work
 

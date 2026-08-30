@@ -37,8 +37,33 @@ methods such as `open`, `ls`, `glob`, `info`, and `rm`.
 
 ## Connect to storage
 
-The package registers fsspec protocols for S3, Google Cloud Storage, and Azure
-Blob Storage:
+Existing S3 URLs can use OpenDAL without changing their protocol. Common
+`s3fs` option names are translated to their OpenDAL equivalents:
+
+```python
+import fsspec
+
+fs = fsspec.filesystem(
+    "s3",
+    bucket="my-bucket",
+    key="access-key",
+    secret="secret-key",
+    client_kwargs={"region_name": "us-east-1"},
+)
+```
+
+Use the generic `opendal` protocol when the service is supplied separately:
+
+```python
+fs, path = fsspec.core.url_to_fs(
+    "opendal:///path/to/file",
+    scheme="memory",
+)
+```
+
+The URL contains only the path. It never infers a service from the URL
+authority. The package also installs explicit entry points for S3, Google
+Cloud Storage, and Azure Blob Storage:
 
 ```python
 import fsspec
@@ -69,7 +94,12 @@ protocol = register_opendal_service("memory")
 fs = fsspec.filesystem(protocol)
 ```
 
-Service options are passed to OpenDAL without being renamed. See the
+If another package has already loaded its `s3` implementation, call
+`register_opendal_native_protocols()` during application startup to make the
+OpenDAL implementation the deterministic winner for the current process.
+
+Explicit OpenDAL service options are passed without being renamed; only the
+native `s3` compatibility entry point translates common `s3fs` names. See the
 [documentation](https://opendalfs.readthedocs.io/) for storage configuration,
 URL rules, supported operations, tested integrations, and the API reference.
 

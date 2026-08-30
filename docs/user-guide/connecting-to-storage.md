@@ -23,7 +23,41 @@ fs = OpendalFileSystem(
 The first argument selects the OpenDAL service. Remaining service-specific
 keyword arguments are passed to the OpenDAL Python binding.
 
-## Ask fsspec for a registered filesystem
+## Upgrade an existing S3 URL
+
+`opendalfs` registers the native `s3` protocol, so existing S3 paths can use
+OpenDAL without a URL rewrite:
+
+```python
+import fsspec
+
+fs, path = fsspec.core.url_to_fs(
+    "s3://my-bucket/reports/2026.csv",
+    key="access-key",
+    secret="secret-key",
+    client_kwargs={
+        "endpoint_url": "https://s3.example.com",
+        "region_name": "us-east-1",
+    },
+)
+```
+
+The compatibility layer translates common `s3fs` spellings such as `key`,
+`secret`, `token`, `anon`, `endpoint_url`, and supported `client_kwargs`.
+Unsupported `s3fs`-specific behavior raises `TypeError` instead of being
+silently ignored.
+
+Python packaging permits more than one distribution to publish the same entry
+point name. If another S3 implementation has already been loaded, make
+OpenDAL the explicit winner during application startup:
+
+```python
+from opendalfs import register_opendal_native_protocols
+
+register_opendal_native_protocols(["s3"])
+```
+
+## Ask fsspec for an explicit OpenDAL filesystem
 
 The package installs fsspec entry points for S3, Google Cloud Storage, and Azure
 Blob:
@@ -37,6 +71,41 @@ fs = fsspec.filesystem(
     region="us-east-1",
 )
 ```
+
+The explicit `opendal+s3` form accepts OpenDAL option names directly and never
+depends on which package owns the native `s3` protocol.
+
+## Use the generic OpenDAL protocol
+
+Use `opendal://` when a library needs a stable generic protocol and can pass
+the OpenDAL service through `storage_options`:
+
+```python
+import fsspec
+
+fs, path = fsspec.core.url_to_fs(
+    "opendal:///cache/item.bin",
+    scheme="memory",
+)
+fs.pipe_file(path, b"cached")
+```
+
+The URL carries only the path. The service and all service-specific settings
+remain explicit configuration. For example, a configured S3 filesystem keeps
+its bucket outside the generic URL:
+
+```python
+fs, path = fsspec.core.url_to_fs(
+    "opendal:///reports/2026.csv",
+    scheme="s3",
+    bucket="my-bucket",
+    region="us-east-1",
+)
+```
+
+Prefer `s3://my-bucket/key` when a native protocol exists. Use
+`opendal+<service>://` when the service should be visible in the protocol.
+The generic form never selects a service from a URL segment.
 
 ## Register another OpenDAL service
 
@@ -119,9 +188,11 @@ OpenDAL maintains the configuration reference for every service. Consult the
 [OpenDAL service directory](https://opendal.apache.org/services/) for option
 names, required fields, credential behavior, and backend-specific notes.
 
-`opendalfs` does not rename those options. For example, OpenDAL's
+The explicit `opendal+<service>` and generic `opendal://` forms do not rename
+those options. For example, OpenDAL's
 `access_key_id`, `secret_access_key`, and `endpoint` options use the same names
-when passed through fsspec.
+when passed through fsspec. Only the native `s3://` compatibility entry point
+translates common `s3fs` option names.
 
 Keep credentials outside source code. Read them from the provider's standard
 environment, a secret manager, or environment variables that your application

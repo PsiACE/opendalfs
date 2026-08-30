@@ -11,6 +11,8 @@ Inherited filesystem operations follow the
 .. autoclass:: opendalfs.OpendalFileSystem
    :members:
    :show-inheritance:
+
+.. autoclass:: opendalfs.OpendalNativeS3FileSystem
 ```
 
 ## Protocol registration
@@ -19,4 +21,6 @@ Inherited filesystem operations follow the
 .. autofunction:: opendalfs.register_opendal_service
 
 .. autofunction:: opendalfs.register_opendal_protocols
+
+.. autofunction:: opendalfs.register_opendal_native_protocols
 ```

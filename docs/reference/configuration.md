@@ -48,10 +48,30 @@ fs = OpendalFileSystem(
 Use the [OpenDAL service directory](https://opendal.apache.org/services/) as the
 configuration reference. Option names pass through unchanged.
 
+The exception is the native `s3` protocol, which accepts these common `s3fs`
+aliases:
+
+| s3fs option | OpenDAL S3 option |
+| --- | --- |
+| `key`, `username` | `access_key_id` |
+| `secret`, `password` | `secret_access_key` |
+| `token` | `session_token` |
+| `anon` | `skip_signature` |
+| `endpoint_url` | `endpoint` |
+| `requester_pays` | `enable_request_payer` |
+| `client_kwargs.region_name` | `region` |
+
+Conflicting aliases and unsupported s3fs-only settings raise `TypeError`.
+
 ## URL-derived settings
 
 Registered service adapters can derive one setting from the URL authority. For
 example, `opendal+s3://my-bucket/path` supplies `bucket="my-bucket"`.
 Explicit filesystem construction requires the bucket keyword instead.
+
+The generic `opendal://` protocol does not derive configuration from the URL.
+Pass the OpenDAL service as `scheme` and keep backend scope explicit, such as
+`scheme="s3", bucket="my-bucket"`. The URL then contains only the
+operator-relative path.
 
 Do not provide conflicting values through the URL and keyword arguments.

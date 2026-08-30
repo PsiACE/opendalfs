@@ -1,6 +1,7 @@
 # Protocol reference
 
-All protocols use the `opendal+<service>` prefix.
+`opendalfs` supports native compatibility protocols, a configured generic
+protocol, and explicit service protocols.
 
 ## Installed entry points
 
@@ -8,11 +9,34 @@ These protocols are available after installing `opendalfs`:
 
 | Protocol | OpenDAL service | URL authority |
 | --- | --- | --- |
+| `s3` | `s3` | `bucket` |
+| `opendal` | supplied as `scheme` | path |
 | `opendal+s3` | `s3` | `bucket` |
 | `opendal+gcs` | `gcs` | `bucket` |
 | `opendal+azblob` | `azblob` | `container` |
 
-## Runtime protocols
+The native `s3` entry point translates common `s3fs` constructor options. Call
+{func}`opendalfs.register_opendal_native_protocols` to overwrite an S3
+implementation that another package loaded earlier in the same process.
+
+## Generic protocol
+
+The generic protocol keeps the service out of the URL:
+
+```python
+import fsspec
+
+fs, path = fsspec.core.url_to_fs(
+    "opendal:///path/to/file",
+    scheme="memory",
+)
+```
+
+The `scheme` and all service options are explicit configuration. No URL segment
+is interpreted as a service, and resolving the URL never registers another
+protocol.
+
+## Explicit and runtime protocols
 
 {func}`opendalfs.register_opendal_service` creates an fsspec implementation
 for another OpenDAL service. The following services have an authority mapping
