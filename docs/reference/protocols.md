@@ -36,30 +36,26 @@ The `scheme` and all service options are explicit configuration. No URL segment
 is interpreted as a service, and resolving the URL never registers another
 protocol.
 
-## Explicit and runtime protocols
+## Tier-0 explicit protocols
 
-{func}`opendalfs.register_opendal_service` creates an fsspec implementation
-for another OpenDAL service. The following services have an authority mapping
-known to `opendalfs`:
+The package only publishes explicit service protocols whose URL behavior it
+supports as a stable contract:
 
-| OpenDAL service | URL authority maps to |
+| Protocol | URL authority maps to |
 | --- | --- |
-| `aliyun-drive` | `drive_type` |
-| `azblob` | `container` |
-| `b2` | `bucket` |
-| `cos` | `bucket` |
-| `gcs` | `bucket` |
-| `obs` | `bucket` |
-| `oss` | `bucket` |
-| `s3` | `bucket` |
-| `tos` | `bucket` |
-| `upyun` | `bucket` |
+| `opendal+s3` | `bucket` |
+| `opendal+gcs` | `bucket` |
+| `opendal+azblob` | `container` |
 
-Other registered services use an empty URL authority and a root-relative path:
+There is no runtime `opendal+<service>` generation. Use the configured generic
+protocol for every other OpenDAL service:
 
 ```text
-opendal+memory:///path/to/file
+opendal:///path/to/file
 ```
+
+and pass `scheme="memory"`, `scheme="oss"`, or another supported OpenDAL
+service in storage configuration.
 
 ## URL reconstruction
 

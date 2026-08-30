@@ -18,7 +18,7 @@ Install `opendalfs` and complete a small read and write workflow.
 :link: connecting-to-storage
 :link-type: doc
 
-Construct a filesystem, register a service, and understand `opendal+` URLs.
+Choose between standard, Tier-0 explicit, and configured OpenDAL URLs.
 :::
 
 :::{grid-item-card} Work with files

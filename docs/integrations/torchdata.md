@@ -2,7 +2,7 @@
 
 <!-- docs-example-group: integration-torchdata -->
 
-TorchData's fsspec DataPipes can list and open files under an `opendal+` URL.
+TorchData's fsspec DataPipes can list and open files under an `opendal://` URL.
 TorchData 0.9 publishes compatible wheels for Python 3.12.
 
 ## List and open files
@@ -11,10 +11,8 @@ TorchData 0.9 publishes compatible wheels for Python 3.12.
 import fsspec
 from torchdata.datapipes import iter as torchdata_iter
 
-from opendalfs import register_opendal_service
-
-register_opendal_service("memory")
-root = "opendal+memory:///torchdata"
+fsspec.config.conf["opendal"] = {"scheme": "memory"}
+root = "opendal:///torchdata"
 expected = {"one.txt": "one", "two.txt": "two"}
 
 for name, content in expected.items():

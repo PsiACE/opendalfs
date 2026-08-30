@@ -1,7 +1,9 @@
+import copy
 import os
 import re
 from pathlib import Path
 
+import fsspec.config
 import pytest
 
 DOCS_ROOT = Path(__file__).parent
@@ -33,6 +35,7 @@ def python_example_files():
 def test_python_examples(path, tmp_path, monkeypatch):
     """Run a page's examples in order, sharing the page's Python namespace."""
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(fsspec.config, "conf", copy.deepcopy(fsspec.config.conf))
     namespace = {"__name__": "__docs_example__"}
 
     for index, match in enumerate(PYTHON_BLOCK.finditer(path.read_text()), start=1):

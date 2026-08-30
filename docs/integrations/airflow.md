@@ -12,10 +12,8 @@ import fsspec
 from airflow.sdk import ObjectStoragePath
 from airflow.sdk.io import store as airflow_store
 
-from opendalfs import register_opendal_service
-
-protocol = register_opendal_service("memory")
-fs = fsspec.filesystem(protocol, skip_instance_cache=True)
+protocol = "opendal"
+fs = fsspec.filesystem(protocol, scheme="memory", skip_instance_cache=True)
 conn_id = "opendal-docs"
 airflow_store.attach(protocol, conn_id=conn_id, fs=fs)
 

@@ -7,11 +7,9 @@ Zarr 3 provides `FsspecStore` for asynchronous access to any fsspec URL.
 ```python
 import zarr
 
-from opendalfs import register_opendal_service
-
-register_opendal_service("memory")
 store = zarr.storage.FsspecStore.from_url(
-    "opendal+memory:///arrays/example",
+    "opendal:///arrays/example",
+    storage_options={"scheme": "memory"},
 )
 ```
 

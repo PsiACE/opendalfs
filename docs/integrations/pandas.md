@@ -5,20 +5,21 @@ also accept an explicit fsspec filesystem.
 
 ## Read a CSV from a URL
 
-Register the memory service and create a small input file. The same URL pattern
-works for configured storage services.
+Configure the memory service and create a small input file. The same URL
+pattern works for every OpenDAL service.
 
 ```python
 import fsspec
 import pandas as pd
 
-from opendalfs import register_opendal_service
-
-protocol = register_opendal_service("memory")
-fs = fsspec.filesystem(protocol)
+storage_options = {"scheme": "memory"}
+fs = fsspec.filesystem("opendal", **storage_options)
 fs.pipe_file("data/events.csv", b"name,value\nalice,1\nbob,2\n")
 
-frame = pd.read_csv("opendal+memory:///data/events.csv")
+frame = pd.read_csv(
+    "opendal:///data/events.csv",
+    storage_options=storage_options,
+)
 assert frame["value"].tolist() == [1, 2]
 ```
 
@@ -42,7 +43,7 @@ with bucket-scoped services.
 
 The repository tests:
 
-- CSV reads from an `opendal+` URL
+- CSV reads from a configured `opendal://` URL
 - Parquet URL round trips through PyArrow
 - Parquet round trips with an explicit filesystem
 

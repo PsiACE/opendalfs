@@ -9,11 +9,8 @@ interface.
 import fsspec
 from upath import UPath
 
-from opendalfs import register_opendal_service
-
-protocol = register_opendal_service("memory")
-fs = fsspec.filesystem(protocol, skip_instance_cache=True)
-root = UPath("universal-pathlib", protocol=protocol, **fs.storage_options)
+fsspec.config.conf["opendal"] = {"scheme": "memory"}
+root = UPath("universal-pathlib", protocol="opendal")
 
 folder = root / "results"
 folder.mkdir(parents=True)

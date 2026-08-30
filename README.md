@@ -83,15 +83,14 @@ opendal+gcs://my-bucket/path/to/file
 opendal+azblob://my-container/path/to/file
 ```
 
-Register other OpenDAL services at runtime:
+All other OpenDAL services use the configured protocol. The service belongs in
+configuration, not in a new URL scheme:
 
 ```python
-import fsspec
-
-from opendalfs import register_opendal_service
-
-protocol = register_opendal_service("memory")
-fs = fsspec.filesystem(protocol)
+fs, path = fsspec.core.url_to_fs(
+    "opendal:///path/to/file",
+    scheme="memory",
+)
 ```
 
 If another package has already loaded its `s3` implementation, call

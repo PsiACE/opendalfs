@@ -50,17 +50,18 @@ connection reuse, but it does not merge different service configurations.
 OpenDAL remains responsible for service clients, credentials, backend-specific
 configuration, and the native capability of each service.
 
-## One registration model
+## One adapter model
 
-The protocol adapters share one filesystem implementation. A small service
-table records only the URL authority mapping that differs between backends.
-Dynamically created `opendal+<service>` classes use that same table and path
-logic, while the generic `opendal` protocol receives its service explicitly.
+The installed protocol adapters share one filesystem implementation. Each
+Tier-0 adapter declares its fixed OpenDAL service and how the URL authority
+maps to that service's scope. The generic `opendal` protocol receives its
+service explicitly and needs no service-specific class.
 
-Bound protocols share the same constructor and registration helper. Standard S3
-only supplies an option-adaptation hook for common `s3fs` constructor names;
-path handling and filesystem operations remain identical to explicit OpenDAL
-protocols.
+Standard S3 only supplies an option-adaptation hook for common `s3fs`
+constructor names; path handling and filesystem operations remain identical to
+the explicit OpenDAL S3 protocol. Non-Tier-0 services use `opendal://` with a
+configured `scheme`; resolving a URL never creates a class or registers a new
+protocol.
 
 ## Why integrations work
 

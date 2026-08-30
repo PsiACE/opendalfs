@@ -9,14 +9,15 @@ an explicit filesystem for Parquet datasets.
 import dask.dataframe as dd
 import fsspec
 
-from opendalfs import register_opendal_service
-
-protocol = register_opendal_service("memory")
-fs = fsspec.filesystem(protocol)
+storage_options = {"scheme": "memory"}
+fs = fsspec.filesystem("opendal", **storage_options)
 fs.pipe_file("events/2026-01.csv", b"name,value\nalice,1\n")
 fs.pipe_file("events/2026-02.csv", b"name,value\nbob,2\n")
 
-frame = dd.read_csv("opendal+memory:///events/2026-*.csv")
+frame = dd.read_csv(
+    "opendal:///events/2026-*.csv",
+    storage_options=storage_options,
+)
 result = frame.compute()
 assert result["value"].tolist() == [1, 2]
 ```

@@ -1,6 +1,6 @@
 # Hugging Face Datasets
 
-Hugging Face Datasets can load data from a registered `opendal+` URL in both
+Hugging Face Datasets can load data from a configured `opendal://` URL in both
 eager and streaming modes.
 
 ## Load JSON Lines from a URL
@@ -11,11 +11,12 @@ from pathlib import Path
 import fsspec
 from datasets import load_dataset
 
-from opendalfs import register_opendal_service
-
-protocol = register_opendal_service("fs")
-storage_options = {"root": str(Path("storage").resolve())}
-data_url = "opendal+fs:///datasets/records.jsonl"
+protocol = "opendal"
+storage_options = {
+    "scheme": "fs",
+    "root": str(Path("storage").resolve()),
+}
+data_url = "opendal:///datasets/records.jsonl"
 
 with fsspec.open(data_url, "wb", **storage_options) as stream:
     stream.write(b'{"text":"first","label":0}\n')
