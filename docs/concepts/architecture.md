@@ -57,10 +57,10 @@ table records only the URL authority mapping that differs between backends.
 Dynamically created `opendal+<service>` classes use that same table and path
 logic, while the generic `opendal` protocol receives its service explicitly.
 
-Native compatibility remains a thin boundary. The `s3` adapter translates
-common `s3fs` constructor names, then delegates every filesystem operation to
-the shared OpenDAL implementation. This avoids maintaining parallel storage
-code for native, generic, and explicit protocols.
+Bound protocols share the same constructor and registration helper. Native S3
+only supplies an option-adaptation hook for common `s3fs` constructor names;
+path handling and filesystem operations remain identical to explicit OpenDAL
+protocols.
 
 ## Why integrations work
 

@@ -47,6 +47,11 @@ class _OpendalServiceFileSystem(OpendalFileSystem):
     protocol: ClassVar[str]
     service: ClassVar[str | None] = None
     _authority_option: ClassVar[str | None] = None
+    _accepts_default_block_size: ClassVar[bool] = False
+
+    @staticmethod
+    def _adapt_storage_options(options: dict[str, Any]) -> dict[str, Any]:
+        return options
 
     @classmethod
     def _class_authority_option(cls) -> str | None:
@@ -61,6 +66,9 @@ class _OpendalServiceFileSystem(OpendalFileSystem):
         **kwargs: Any,
     ) -> None:
         kwargs.pop("scheme", None)
+        default_block_size = None
+        if type(self)._accepts_default_block_size:
+            default_block_size = kwargs.pop("default_block_size", None)
         declared_service = type(self).service
         if declared_service is not None and service not in (None, declared_service):
             raise ValueError(
@@ -76,7 +84,10 @@ class _OpendalServiceFileSystem(OpendalFileSystem):
         self._resolved_authority_option = (
             type(self)._authority_option or spec.authority_option
         )
-        super().__init__(resolved_service, *args, **kwargs)
+        storage_options = type(self)._adapt_storage_options(kwargs)
+        super().__init__(resolved_service, *args, **storage_options)
+        if default_block_size is not None:
+            self.blocksize = default_block_size
 
     def __reduce__(self):
         return (
@@ -179,12 +190,8 @@ class OpendalNativeS3FileSystem(_OpendalServiceFileSystem):
 
     protocol = "s3"
     service = "s3"
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        default_block_size = kwargs.pop("default_block_size", None)
-        super().__init__(*args, **translate_s3fs_options(kwargs))
-        if default_block_size is not None:
-            self.blocksize = default_block_size
+    _accepts_default_block_size = True
+    _adapt_storage_options = staticmethod(translate_s3fs_options)
 
 
 _BUILTIN_FILESYSTEMS: dict[str, type[_OpendalServiceFileSystem]] = {
@@ -236,6 +243,20 @@ def _filesystem_class_for_service(
     return cls
 
 
+def _register_filesystem(
+    protocol: str,
+    cls: type[OpendalFileSystem],
+    *,
+    clobber: bool,
+) -> str:
+    from fsspec.registry import get_filesystem_class, register_implementation
+
+    register_implementation(protocol, cls, clobber=clobber)
+    if get_filesystem_class(protocol) is not cls:
+        raise RuntimeError(f"OpenDAL did not win registration for {protocol!r}")
+    return protocol
+
+
 def register_opendal_service(service: str, *, clobber: bool = True) -> str:
     """Register one OpenDAL service as an fsspec protocol.
 
@@ -257,12 +278,9 @@ def register_opendal_service(service: str, *, clobber: bool = True) -> str:
     Registration applies to the current Python process. Repeating a
     registration for the same service reuses the generated filesystem class.
     """
-    from fsspec.registry import register_implementation
-
     protocol = f"opendal+{service}"
     cls = _filesystem_class_for_service(service)
-    register_implementation(protocol, cls, clobber=clobber)
-    return protocol
+    return _register_filesystem(protocol, cls, clobber=clobber)
 
 
 def register_opendal_native_protocols(
@@ -281,8 +299,6 @@ def register_opendal_native_protocols(
     list of str
         Replaced protocol names in sorted order.
     """
-    from fsspec.registry import get_filesystem_class, register_implementation
-
     if protocols is None:
         protocols = list(_NATIVE_FILESYSTEMS)
 
@@ -296,10 +312,7 @@ def register_opendal_native_protocols(
                 f"Unsupported native OpenDAL protocol {protocol!r}; "
                 f"choose from: {supported}"
             ) from error
-        register_implementation(protocol, cls, clobber=True)
-        if get_filesystem_class(protocol) is not cls:
-            raise RuntimeError(f"OpenDAL did not win registration for {protocol!r}")
-        registered.append(protocol)
+        registered.append(_register_filesystem(protocol, cls, clobber=True))
     return sorted(set(registered))
 
 
