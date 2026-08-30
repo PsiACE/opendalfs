@@ -37,9 +37,11 @@ Issues = "https://github.com/fsspec/opendalfs/issues"
 Changelog = "https://github.com/fsspec/opendalfs/releases"
 
 [project.entry-points."fsspec.specs"]
+"opendal" = "opendalfs.fs:OpendalFileSystem"
 "opendal+s3" = "opendalfs.registry:OpendalS3FileSystem"
 "opendal+gcs" = "opendalfs.registry:OpendalGCSFileSystem"
 "opendal+azblob" = "opendalfs.registry:OpendalAzBlobFileSystem"
+"s3" = "opendalfs.registry:OpendalNativeS3FileSystem"
 
 [dependency-groups]
 bench = [

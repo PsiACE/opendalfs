@@ -32,6 +32,7 @@ class OpendalFileSystem(AsyncFileSystem):
     """
 
     async_impl = True
+    protocol = "opendal"
 
     def __init__(
         self,
