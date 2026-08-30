@@ -1,6 +1,6 @@
 # Protocol reference
 
-`opendalfs` supports native compatibility protocols, a configured generic
+`opendalfs` supports standard compatibility protocols, a configured generic
 protocol, and explicit service protocols.
 
 ## Installed entry points
@@ -15,8 +15,8 @@ These protocols are available after installing `opendalfs`:
 | `opendal+gcs` | `gcs` | `bucket` |
 | `opendal+azblob` | `azblob` | `container` |
 
-The native `s3` entry point translates common `s3fs` constructor options. Call
-{func}`opendalfs.register_opendal_native_protocols` to overwrite an S3
+The standard `s3` entry point translates common `s3fs` constructor options. Call
+{func}`opendalfs.register_opendal_standard_protocols` to overwrite an S3
 implementation that another package loaded earlier in the same process.
 
 ## Generic protocol

@@ -95,11 +95,11 @@ fs = fsspec.filesystem(protocol)
 ```
 
 If another package has already loaded its `s3` implementation, call
-`register_opendal_native_protocols()` during application startup to make the
+`register_opendal_standard_protocols()` during application startup to make the
 OpenDAL implementation the deterministic winner for the current process.
 
 Explicit OpenDAL service options are passed without being renamed; only the
-native `s3` compatibility entry point translates common `s3fs` names. See the
+standard `s3` compatibility entry point translates common `s3fs` names. See the
 [documentation](https://opendalfs.readthedocs.io/) for storage configuration,
 URL rules, supported operations, tested integrations, and the API reference.
 

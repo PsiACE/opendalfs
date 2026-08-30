@@ -185,7 +185,7 @@ class OpendalAzBlobFileSystem(_OpendalServiceFileSystem):
     service = "azblob"
 
 
-class OpendalNativeS3FileSystem(_OpendalServiceFileSystem):
+class S3FileSystem(_OpendalServiceFileSystem):
     """OpenDAL S3 filesystem accepting the common s3fs constructor spelling."""
 
     protocol = "s3"
@@ -199,8 +199,8 @@ _BUILTIN_FILESYSTEMS: dict[str, type[_OpendalServiceFileSystem]] = {
     "gcs": OpendalGCSFileSystem,
     "azblob": OpendalAzBlobFileSystem,
 }
-_NATIVE_FILESYSTEMS: dict[str, type[_OpendalServiceFileSystem]] = {
-    "s3": OpendalNativeS3FileSystem,
+_STANDARD_FILESYSTEMS: dict[str, type[_OpendalServiceFileSystem]] = {
+    "s3": S3FileSystem,
 }
 _DYNAMIC_FILESYSTEMS: dict[str, type[_OpendalServiceFileSystem]] = {}
 
@@ -211,8 +211,8 @@ def _rebuild_service_filesystem(
     storage_args: tuple[Any, ...],
     storage_options: dict[str, Any],
 ):
-    if protocol in _NATIVE_FILESYSTEMS:
-        cls = _NATIVE_FILESYSTEMS[protocol]
+    if protocol in _STANDARD_FILESYSTEMS:
+        cls = _STANDARD_FILESYSTEMS[protocol]
     else:
         register_opendal_service(service, clobber=True)
         cls = _filesystem_class_for_service(service)
@@ -283,15 +283,15 @@ def register_opendal_service(service: str, *, clobber: bool = True) -> str:
     return _register_filesystem(protocol, cls, clobber=clobber)
 
 
-def register_opendal_native_protocols(
+def register_opendal_standard_protocols(
     protocols: list[str] | None = None,
 ) -> list[str]:
-    """Make OpenDAL win registration for supported native fsspec protocols.
+    """Make OpenDAL win registration for supported standard fsspec protocols.
 
     Parameters
     ----------
     protocols : list of str, optional
-        Native protocol names to replace. If omitted, replaces every native
+        Standard protocol names to replace. If omitted, replaces every standard
         protocol supported by this version of ``opendalfs``.
 
     Returns
@@ -300,16 +300,16 @@ def register_opendal_native_protocols(
         Replaced protocol names in sorted order.
     """
     if protocols is None:
-        protocols = list(_NATIVE_FILESYSTEMS)
+        protocols = list(_STANDARD_FILESYSTEMS)
 
     registered = []
     for protocol in protocols:
         try:
-            cls = _NATIVE_FILESYSTEMS[protocol]
+            cls = _STANDARD_FILESYSTEMS[protocol]
         except KeyError as error:
-            supported = ", ".join(sorted(_NATIVE_FILESYSTEMS))
+            supported = ", ".join(sorted(_STANDARD_FILESYSTEMS))
             raise ValueError(
-                f"Unsupported native OpenDAL protocol {protocol!r}; "
+                f"Unsupported standard OpenDAL protocol {protocol!r}; "
                 f"choose from: {supported}"
             ) from error
         registered.append(_register_filesystem(protocol, cls, clobber=True))

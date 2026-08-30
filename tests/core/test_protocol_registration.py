@@ -7,12 +7,12 @@ import fsspec
 from opendalfs.registry import (
     OpendalAzBlobFileSystem,
     OpendalGCSFileSystem,
-    OpendalNativeS3FileSystem,
     OpendalS3FileSystem,
+    S3FileSystem,
     _OpendalServiceFileSystem,
-    register_opendal_native_protocols,
     register_opendal_protocols,
     register_opendal_service,
+    register_opendal_standard_protocols,
 )
 
 
@@ -38,7 +38,7 @@ def test_register_default_protocols():
     assert get_filesystem_class("opendal+azblob") is OpendalAzBlobFileSystem
 
 
-def test_native_s3_registration_replaces_existing_implementation(monkeypatch):
+def test_standard_s3_registration_replaces_existing_implementation(monkeypatch):
     import importlib
 
     from fsspec.implementations.memory import MemoryFileSystem
@@ -46,8 +46,8 @@ def test_native_s3_registration_replaces_existing_implementation(monkeypatch):
     registry = importlib.import_module("fsspec.registry")
     monkeypatch.setitem(registry._registry, "s3", MemoryFileSystem)
 
-    assert register_opendal_native_protocols() == ["s3"]
-    assert registry.get_filesystem_class("s3") is OpendalNativeS3FileSystem
+    assert register_opendal_standard_protocols() == ["s3"]
+    assert registry.get_filesystem_class("s3") is S3FileSystem
 
 
 def test_entry_points_resolve_in_an_isolated_process():

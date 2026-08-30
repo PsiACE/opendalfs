@@ -1,15 +1,15 @@
 from .fs import OpendalFileSystem
 from .registry import (
-    OpendalNativeS3FileSystem,
-    register_opendal_native_protocols,
+    S3FileSystem,
     register_opendal_protocols,
     register_opendal_service,
+    register_opendal_standard_protocols,
 )
 
 __all__ = [
     "OpendalFileSystem",
-    "OpendalNativeS3FileSystem",
-    "register_opendal_native_protocols",
+    "S3FileSystem",
     "register_opendal_protocols",
     "register_opendal_service",
+    "register_opendal_standard_protocols",
 ]

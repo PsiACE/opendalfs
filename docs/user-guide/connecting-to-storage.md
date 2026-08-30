@@ -25,7 +25,7 @@ keyword arguments are passed to the OpenDAL Python binding.
 
 ## Upgrade an existing S3 URL
 
-`opendalfs` registers the native `s3` protocol, so existing S3 paths can use
+`opendalfs` registers the standard `s3` protocol, so existing S3 paths can use
 OpenDAL without a URL rewrite:
 
 ```python
@@ -52,9 +52,9 @@ point name. If another S3 implementation has already been loaded, make
 OpenDAL the explicit winner during application startup:
 
 ```python
-from opendalfs import register_opendal_native_protocols
+from opendalfs import register_opendal_standard_protocols
 
-register_opendal_native_protocols(["s3"])
+register_opendal_standard_protocols(["s3"])
 ```
 
 ## Ask fsspec for an explicit OpenDAL filesystem
@@ -73,7 +73,7 @@ fs = fsspec.filesystem(
 ```
 
 The explicit `opendal+s3` form accepts OpenDAL option names directly and never
-depends on which package owns the native `s3` protocol.
+depends on which package owns the standard `s3` protocol.
 
 ## Use the generic OpenDAL protocol
 
@@ -103,7 +103,7 @@ fs, path = fsspec.core.url_to_fs(
 )
 ```
 
-Prefer `s3://my-bucket/key` when a native protocol exists. Use
+Prefer `s3://my-bucket/key` when a standard protocol exists. Use
 `opendal+<service>://` when the service should be visible in the protocol.
 The generic form never selects a service from a URL segment.
 
@@ -191,7 +191,7 @@ names, required fields, credential behavior, and backend-specific notes.
 The explicit `opendal+<service>` and generic `opendal://` forms do not rename
 those options. For example, OpenDAL's
 `access_key_id`, `secret_access_key`, and `endpoint` options use the same names
-when passed through fsspec. Only the native `s3://` compatibility entry point
+when passed through fsspec. Only the standard `s3://` compatibility entry point
 translates common `s3fs` option names.
 
 Keep credentials outside source code. Read them from the provider's standard

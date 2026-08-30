@@ -5,9 +5,9 @@ from botocore.exceptions import EndpointConnectionError
 
 from opendalfs import OpendalFileSystem
 from opendalfs.registry import (
-    OpendalNativeS3FileSystem,
     OpendalS3FileSystem,
-    register_opendal_native_protocols,
+    S3FileSystem,
+    register_opendal_standard_protocols,
 )
 from tests.utils.s3 import S3Config, cleanup_bucket, create_test_bucket, get_s3_client
 
@@ -64,11 +64,11 @@ def s3fs_fs(s3_fs, s3_config):
 
 
 @pytest.fixture
-def native_s3_fs(minio_server, s3_config):
+def standard_s3_fs(minio_server, s3_config):
     """Resolve an s3fs-shaped configuration through the OpenDAL s3 protocol."""
     import fsspec
 
-    register_opendal_native_protocols()
+    register_opendal_standard_protocols()
     fs = fsspec.filesystem(
         "s3",
         bucket=s3_config.bucket,
@@ -81,7 +81,7 @@ def native_s3_fs(minio_server, s3_config):
         use_listings_cache=False,
         skip_instance_cache=True,
     )
-    assert isinstance(fs, OpendalNativeS3FileSystem)
+    assert isinstance(fs, S3FileSystem)
 
     create_test_bucket(s3_config)
     yield fs

@@ -1,6 +1,6 @@
 import pytest
 
-from opendalfs import OpendalNativeS3FileSystem
+from opendalfs import S3FileSystem
 
 
 @pytest.mark.parametrize(
@@ -16,6 +16,6 @@ from opendalfs import OpendalNativeS3FileSystem
         ({"version_aware": True}, "Unsupported s3fs options"),
     ],
 )
-def test_native_s3_rejects_incompatible_options(options, message):
+def test_standard_s3_rejects_incompatible_options(options, message):
     with pytest.raises(TypeError, match=message):
-        OpendalNativeS3FileSystem(bucket="bucket", **options)
+        S3FileSystem(bucket="bucket", **options)

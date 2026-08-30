@@ -48,7 +48,7 @@ fs = OpendalFileSystem(
 Use the [OpenDAL service directory](https://opendal.apache.org/services/) as the
 configuration reference. Option names pass through unchanged.
 
-The exception is the native `s3` protocol, which accepts these common `s3fs`
+The exception is the standard `s3` protocol, which accepts these common `s3fs`
 aliases:
 
 | s3fs option | OpenDAL S3 option |

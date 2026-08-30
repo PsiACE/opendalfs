@@ -57,7 +57,7 @@ table records only the URL authority mapping that differs between backends.
 Dynamically created `opendal+<service>` classes use that same table and path
 logic, while the generic `opendal` protocol receives its service explicitly.
 
-Bound protocols share the same constructor and registration helper. Native S3
+Bound protocols share the same constructor and registration helper. Standard S3
 only supplies an option-adaptation hook for common `s3fs` constructor names;
 path handling and filesystem operations remain identical to explicit OpenDAL
 protocols.

@@ -41,7 +41,7 @@ Changelog = "https://github.com/fsspec/opendalfs/releases"
 "opendal+s3" = "opendalfs.registry:OpendalS3FileSystem"
 "opendal+gcs" = "opendalfs.registry:OpendalGCSFileSystem"
 "opendal+azblob" = "opendalfs.registry:OpendalAzBlobFileSystem"
-"s3" = "opendalfs.registry:OpendalNativeS3FileSystem"
+"s3" = "opendalfs.registry:S3FileSystem"
 
 [dependency-groups]
 bench = [
