@@ -48,8 +48,8 @@ def _(mo):
     # One object, three fsspec entry points
 
     This first solution verifies the repository's MinIO service and shows how an
-    existing `s3://` URL, an explicit `opendal+s3://` URL, and the service gateway
-    `opendal://s3/...` reach the same object.
+    existing `s3://` URL, an explicit `opendal+s3://` URL, and a configured
+    `opendal:///...` URL reach the same object.
 
     The input is the public UCI Iris dataset (CC BY 4.0). Start MinIO with
     `podman compose up -d --wait` before running the notebook.
@@ -85,20 +85,22 @@ def _(explicit_fs, fsspec, iris_download, iris_key, minio, native_fs):
     explicit_bytes = explicit_fs.cat_file(iris_key)
     native_bytes = native_fs.cat_file(iris_key)
 
-    gateway_url = f"opendal://s3/{minio.bucket}/{iris_key}"
-    gateway_fs, gateway_path = fsspec.core.url_to_fs(
-        gateway_url,
+    configured_url = f"opendal:///{iris_key}"
+    configured_fs, configured_path = fsspec.core.url_to_fs(
+        configured_url,
+        scheme="s3",
+        bucket=minio.bucket,
         **minio.opendal_options(),
     )
-    gateway_bytes = gateway_fs.cat_file(gateway_path)
+    configured_bytes = configured_fs.cat_file(configured_path)
 
-    assert explicit_bytes == native_bytes == gateway_bytes
+    assert explicit_bytes == native_bytes == configured_bytes
     assert len(explicit_bytes) == iris_download.size
 
     protocol_result = {
         "s3://": type(native_fs).__name__,
         "opendal+s3://": type(explicit_fs).__name__,
-        "opendal://s3/": type(gateway_fs).__name__,
+        "opendal://": type(configured_fs).__name__,
         "bytes": len(explicit_bytes),
         "sha256": iris_download.sha256,
     }
