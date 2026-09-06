@@ -56,7 +56,7 @@ Find examples backed by the repository's integration tests.
 :link: reference/api
 :link-type: doc
 
-Inspect the public classes and registration helpers provided by `opendalfs`.
+Inspect the public filesystem classes provided by `opendalfs`.
 :::
 ::::
 

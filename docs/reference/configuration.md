@@ -48,7 +48,9 @@ fs = OpendalFileSystem(
 Use the [OpenDAL service directory](https://opendal.apache.org/services/) as the
 configuration reference. Option names pass through unchanged.
 
-The `S3FileSystem` adapter accepts these common `s3fs` aliases:
+## S3 compatibility options
+
+The `S3FileSystem` adapter for `s3://` accepts the following `s3fs` aliases. These aliases do not apply to `OpendalFileSystem` or the `opendal+...` protocols, which use OpenDAL option names.
 
 | s3fs option | OpenDAL S3 option |
 | --- | --- |
@@ -66,11 +68,16 @@ The `S3FileSystem` adapter accepts these common `s3fs` aliases:
 
 OpenDAL option names take precedence when both forms are provided.
 Unsupported nested `client_kwargs` raise `TypeError`.
+`client_kwargs` must be a mapping. Top-level aliases take precedence over aliases inside `client_kwargs`.
+
+`default_block_size` sets the filesystem's default block size in bytes. It is an adapter setting, not an OpenDAL service option. Other s3fs-specific options and features are not guaranteed to be compatible.
 
 ## URL-derived settings
 
 Registered service adapters can derive one setting from the URL authority. For
 example, `opendal+s3://my-bucket/path` supplies `bucket="my-bucket"`.
 Explicit filesystem construction requires the bucket keyword instead.
+
+For `s3://my-bucket/path`, `S3FileSystem` uses `my-bucket` even when a different `bucket` is present in the storage options. Paths passed to this filesystem include the bucket, such as `my-bucket/path`; the underlying OpenDAL operator receives the bucket-relative key.
 
 Do not provide conflicting values through the URL and keyword arguments.

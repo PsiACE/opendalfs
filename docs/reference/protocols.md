@@ -29,8 +29,8 @@ from opendalfs import S3FileSystem
 fsspec.register_implementation("s3", S3FileSystem, clobber=True)
 ```
 
-This explicit process-wide operation is the only way opendalfs changes the meaning of a standard protocol.
+Installing or importing opendalfs does not replace fsspec's S3 implementation. The explicit registration above replaces it for subsequent lookups in the current process.
 The adapter accepts the common s3fs constructor options listed in {doc}`configuration`.
-Each adapter instance is scoped to one bucket; a multi-path operation spanning buckets raises `ValueError`.
+Each adapter instance is scoped to one bucket; paths belonging to another bucket raise `ValueError`. This is not a complete replacement for every s3fs feature.
 
 See {doc}`../user-guide/connecting-to-storage` for complete examples.
