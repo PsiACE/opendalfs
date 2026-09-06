@@ -58,7 +58,11 @@ opendal+gcs://my-bucket/path/to/file
 opendal+azblob://my-container/path/to/file
 ```
 
-To keep an existing `s3://` URL, explicitly register the OpenDAL adapter with fsspec:
+For other services, construct `OpendalFileSystem("service", ...)` directly and pass the filesystem, a mapping, or an opened file to the consuming library. Available services depend on the installed OpenDAL Python binding.
+
+### Use `s3://` URLs
+
+Explicitly register `S3FileSystem` with fsspec to use `s3://` URLs with OpenDAL:
 
 ```python
 import fsspec
@@ -67,16 +71,11 @@ from opendalfs import S3FileSystem
 fsspec.register_implementation("s3", S3FileSystem, clobber=True)
 ```
 
-Registration is process-wide and intentionally opt-in.
-Installing `opendalfs` does not change the implementation of `s3://`.
+Register during application startup, before constructing an S3 filesystem. Registration replaces the S3 implementation for subsequent fsspec lookups in the current process; installing or importing `opendalfs` does not change it automatically.
 
-Each `S3FileSystem` instance is scoped to one bucket.
-Separate filesystem instances can access different buckets, but one multi-path operation cannot span buckets.
+You can reuse supported s3fs options, including `key`, `secret`, `token`, `anon`, `endpoint_url`, and selected `client_kwargs`. Each instance is scoped to one bucket; the adapter does not support every s3fs option or feature.
 
-OpenDAL service options are passed without being renamed; only the opt-in
-`S3FileSystem` adapter translates common `s3fs` names. See the
-[documentation](https://opendalfs.readthedocs.io/) for storage configuration,
-URL rules, supported operations, tested integrations, and the API reference.
+`OpendalFileSystem` and the `opendal+...` protocols use OpenDAL option names unchanged. See [Connecting to storage](https://opendalfs.readthedocs.io/en/latest/user-guide/connecting-to-storage.html) for complete examples and the [configuration reference](https://opendalfs.readthedocs.io/en/latest/reference/configuration.html) for supported options.
 
 ## Community
 
