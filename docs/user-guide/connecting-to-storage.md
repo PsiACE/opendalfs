@@ -38,6 +38,32 @@ fs = fsspec.filesystem(
 )
 ```
 
+## Keep an existing S3 URL
+
+Applications that cannot rewrite existing `s3://` URLs can explicitly replace fsspec's S3 implementation:
+
+```python
+import fsspec
+from opendalfs import S3FileSystem
+
+fsspec.register_implementation("s3", S3FileSystem, clobber=True)
+
+fs, path = fsspec.core.url_to_fs(
+    "s3://my-bucket/reports/2026.csv",
+    key="access-key",
+    secret="secret-key",
+    client_kwargs={"region_name": "us-east-1"},
+)
+```
+
+The registration call is process-wide and should run during application startup, before constructing an S3 filesystem.
+`S3FileSystem` translates common s3fs names such as `key`, `secret`, `token`, `anon`, and supported `client_kwargs`.
+Installing `opendalfs` alone never changes `s3://`.
+
+An OpenDAL S3 operator is scoped to one bucket, so each `S3FileSystem` instance is also scoped to one bucket.
+Independent fsspec calls can use different buckets.
+A single multi-path operation spanning buckets raises `ValueError` instead of sending a path to the wrong bucket.
+
 ## Register another OpenDAL service
 
 Other OpenDAL services can be registered for the current Python process. The

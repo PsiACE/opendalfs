@@ -136,3 +136,12 @@ def test_backend_key_can_start_with_the_authority(tmp_path):
     assert fs.cat_file(moved) == b"content appended"
     assert fs.info(moved)["name"] == moved
     assert set(fs.ls(directory, detail=False)) == {source, moved}
+
+
+def test_s3_adapter_can_be_registered():
+    import fsspec
+
+    from opendalfs import S3FileSystem
+
+    fsspec.register_implementation("s3", S3FileSystem, clobber=True)
+    assert fsspec.get_filesystem_class("s3") is S3FileSystem

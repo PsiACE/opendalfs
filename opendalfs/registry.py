@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, ClassVar
 from urllib.parse import urlsplit
 
@@ -172,3 +173,91 @@ def register_opendal_protocols(services: list[str] | None = None) -> list[str]:
         services = list(_BUILTIN_FILESYSTEMS)
 
     return sorted({register_opendal_service(service) for service in services})
+
+
+_S3FS_OPTION_ALIASES = {
+    "key": "access_key_id",
+    "secret": "secret_access_key",
+    "token": "session_token",
+    "anon": "skip_signature",
+    "endpoint_url": "endpoint",
+    "requester_pays": "enable_request_payer",
+}
+_S3FS_CLIENT_OPTION_ALIASES = {
+    "aws_access_key_id": "access_key_id",
+    "aws_secret_access_key": "secret_access_key",
+    "aws_session_token": "session_token",
+    "endpoint_url": "endpoint",
+    "region_name": "region",
+}
+_S3FS_BOOLEAN_OPTIONS = {"anon", "requester_pays"}
+
+
+def _translate_s3fs_options(options: dict[str, Any]) -> dict[str, Any]:
+    translated = options.copy()
+    for s3fs_name, opendal_name in _S3FS_OPTION_ALIASES.items():
+        if (value := translated.pop(s3fs_name, None)) is not None:
+            if s3fs_name in _S3FS_BOOLEAN_OPTIONS and isinstance(value, bool):
+                value = str(value).lower()
+            translated.setdefault(opendal_name, value)
+
+    client_options = translated.pop("client_kwargs", None)
+    if client_options is None:
+        client_options = {}
+    if not isinstance(client_options, Mapping):
+        raise TypeError("S3 option 'client_kwargs' must be a mapping")
+    client_options = dict(client_options)
+    for s3fs_name, opendal_name in _S3FS_CLIENT_OPTION_ALIASES.items():
+        if (value := client_options.pop(s3fs_name, None)) is not None:
+            translated.setdefault(opendal_name, value)
+    if client_options:
+        unsupported = ", ".join(sorted(client_options))
+        raise TypeError(f"Unsupported S3 client_kwargs: {unsupported}")
+
+    return translated
+
+
+class S3FileSystem(OpendalS3FileSystem):
+    """Route standard ``s3://`` URLs through OpenDAL."""
+
+    protocol = "s3"
+
+    def __init__(
+        self,
+        *args: Any,
+        default_block_size: int | None = None,
+        _bucket_from_url: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        options = _translate_s3fs_options(kwargs)
+        if _bucket_from_url is not None:
+            options["bucket"] = _bucket_from_url
+        self._bucket = options.get("bucket", "")
+        super().__init__(*args, **options)
+        if default_block_size is not None:
+            self.blocksize = default_block_size
+
+    @property
+    def _authority(self) -> str:
+        return self._bucket
+
+    def _to_operator_path(self, path: str) -> str:
+        path = OpendalFileSystem._to_operator_path(self, path)
+        if not path or path == self._authority:
+            return ""
+        prefix = f"{self._authority}/"
+        if self._authority and path.startswith(prefix):
+            return path[len(prefix) :]
+        raise ValueError(
+            f"S3 path {path!r} does not belong to bucket {self._authority!r}"
+        )
+
+    def unstrip_protocol(self, name: str) -> str:
+        return OpendalFileSystem.unstrip_protocol(self, name)
+
+    @classmethod
+    def _get_kwargs_from_urls(cls, path: str) -> dict[str, Any]:
+        options = super()._get_kwargs_from_urls(path)
+        if bucket := options.pop("bucket", None):
+            options["_bucket_from_url"] = bucket
+        return options
