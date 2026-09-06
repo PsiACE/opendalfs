@@ -117,7 +117,7 @@ def _translate_s3fs_options(options: dict[str, Any]) -> dict[str, Any]:
     return translated
 
 
-class S3FileSystem(OpendalS3FileSystem):
+class S3FileSystem(OpendalFileSystem):
     """Route standard ``s3://`` URLs through OpenDAL."""
 
     protocol = "s3"
@@ -133,31 +133,38 @@ class S3FileSystem(OpendalS3FileSystem):
         if _bucket_from_url is not None:
             options["bucket"] = _bucket_from_url
         self._bucket = options.get("bucket", "")
-        super().__init__(*args, **options)
+        options.pop("scheme", None)
+        super().__init__("s3", *args, **options)
         if default_block_size is not None:
             self.blocksize = default_block_size
 
-    @property
-    def _authority(self) -> str:
-        return self._bucket
-
     def _to_operator_path(self, path: str) -> str:
-        path = OpendalFileSystem._to_operator_path(self, path)
-        if not path or path == self._authority:
+        path = super()._to_operator_path(path)
+        if not path or path == self._bucket:
             return ""
-        prefix = f"{self._authority}/"
-        if self._authority and path.startswith(prefix):
+        prefix = f"{self._bucket}/"
+        if self._bucket and path.startswith(prefix):
             return path[len(prefix) :]
-        raise ValueError(
-            f"S3 path {path!r} does not belong to bucket {self._authority!r}"
-        )
+        raise ValueError(f"S3 path {path!r} does not belong to bucket {self._bucket!r}")
 
-    def unstrip_protocol(self, name: str) -> str:
-        return OpendalFileSystem.unstrip_protocol(self, name)
+    def _add_bucket(self, path: str) -> str:
+        return f"{self._bucket}/{path}" if path else self._bucket
+
+    async def _ls(self, path: str, detail=True, **kwargs):
+        entries = await super()._ls(path, detail=detail, **kwargs)
+        if not detail:
+            return [self._add_bucket(path) for path in entries]
+        return [{**entry, "name": self._add_bucket(entry["name"])} for entry in entries]
+
+    async def _info(self, path: str, **kwargs):
+        info = await super()._info(path, **kwargs)
+        return {**info, "name": self._add_bucket(info["name"])}
 
     @classmethod
     def _get_kwargs_from_urls(cls, path: str) -> dict[str, Any]:
-        options = super()._get_kwargs_from_urls(path)
-        if bucket := options.pop("bucket", None):
-            options["_bucket_from_url"] = bucket
-        return options
+        if "://" not in path:
+            return {}
+        parsed = urlsplit(path)
+        if parsed.scheme != cls.protocol or not parsed.netloc:
+            return {}
+        return {"_bucket_from_url": parsed.netloc}
