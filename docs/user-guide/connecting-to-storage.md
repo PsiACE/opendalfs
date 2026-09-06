@@ -115,7 +115,6 @@ except ValueError:
     pass  # This filesystem cannot access another bucket.
 else:
     raise AssertionError("A path in another bucket must be rejected")
-
 ```
 
 Independent fsspec calls can use different buckets; create a separate filesystem for each bucket. When constructing `S3FileSystem` directly, pass `bucket=...` explicitly.
